@@ -1,0 +1,15 @@
+export const USER_ROLES = {
+  MANAGER: "MANAGER",
+  TEAM_MEMBER: "TEAM_MEMBER",
+};
+
+export const TASK_STATUS = {
+  TODO: "TODO",
+  IN_PROGRESS: "IN_PROGRESS",
+  COMPLETED: "COMPLETED",
+};
+
+export const REPORT_STATUS = {
+  DRAFT: "DRAFT",
+  SUBMITTED: "SUBMITTED",
+};
