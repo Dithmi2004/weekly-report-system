@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 
+const { errorHandler } = require("./middleware/errorMiddleware");
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const projectRoutes = require("./routes/projectRoutes");
@@ -25,5 +26,7 @@ app.use((req, res) => {
     message: "API endpoint not found",
   });
 });
+
+app.use(errorHandler);
 
 module.exports = app;
