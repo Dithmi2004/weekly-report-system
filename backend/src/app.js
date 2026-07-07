@@ -1,6 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 
+const authRoutes = require("./routes/authRoutes");
+
 const app = express();
 
 app.use(cors());
@@ -8,6 +10,15 @@ app.use(express.json());
 
 app.get("/", (req, res) => {
   res.json({ message: "Weekly Report API is running" });
+});
+
+app.use("/api/auth", authRoutes);
+
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: "API endpoint not found",
+  });
 });
 
 module.exports = app;
