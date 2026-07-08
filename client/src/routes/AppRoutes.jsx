@@ -2,8 +2,15 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import LoginPage from "../pages/Auth/LoginPage";
 import ManagerDashboard from "../pages/Manager/ManagerDashboard";
+import ManagerProjects from "../pages/Manager/ManagerProjects";
+import ManagerReportDetails from "../pages/Manager/ManagerReportDetails";
+import ManagerReports from "../pages/Manager/ManagerReports";
 import ManagerTasks from "../pages/Manager/ManagerTasks";
 import MemberDashboard from "../pages/Member/MemberDashboard";
+import MemberProjects from "../pages/Member/MemberProjects";
+import MemberReportDetails from "../pages/Member/MemberReportDetails";
+import MemberReportFormPage from "../pages/Member/MemberReportFormPage";
+import MemberReports from "../pages/Member/MemberReports";
 import MemberTasks from "../pages/Member/MemberTasks";
 
 import ProtectedRoute from "./ProtectedRoute";
@@ -64,10 +71,55 @@ const AppRoutes = () => {
         />
 
         <Route
+          path="/member/projects"
+          element={
+            <ProtectedRoute allowedRoles={["TEAM_MEMBER"]}>
+              <MemberProjects />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/member/tasks"
           element={
             <ProtectedRoute allowedRoles={["TEAM_MEMBER"]}>
               <MemberTasks />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/member/reports"
+          element={
+            <ProtectedRoute allowedRoles={["TEAM_MEMBER"]}>
+              <MemberReports />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/member/reports/create"
+          element={
+            <ProtectedRoute allowedRoles={["TEAM_MEMBER"]}>
+              <MemberReportFormPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/member/reports/:id/edit"
+          element={
+            <ProtectedRoute allowedRoles={["TEAM_MEMBER"]}>
+              <MemberReportFormPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/member/reports/:id"
+          element={
+            <ProtectedRoute allowedRoles={["TEAM_MEMBER"]}>
+              <MemberReportDetails />
             </ProtectedRoute>
           }
         />
@@ -87,6 +139,33 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={["MANAGER"]}>
               <ManagerTasks />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/manager/projects"
+          element={
+            <ProtectedRoute allowedRoles={["MANAGER"]}>
+              <ManagerProjects />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/manager/reports"
+          element={
+            <ProtectedRoute allowedRoles={["MANAGER"]}>
+              <ManagerReports />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/manager/reports/:id"
+          element={
+            <ProtectedRoute allowedRoles={["MANAGER"]}>
+              <ManagerReportDetails />
             </ProtectedRoute>
           }
         />
