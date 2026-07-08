@@ -9,6 +9,7 @@ const taskRoutes = require("./routes/taskRoutes");
 const weeklyReportRoutes = require("./routes/weeklyReportRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
+const assistantRoutes = require("./routes/assistantRoutes");
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use("/api/tasks", taskRoutes);
 app.use("/api/reports", weeklyReportRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/assistant", assistantRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

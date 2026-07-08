@@ -1,4 +1,5 @@
 import { useState } from "react";
+import AssistantWidget from "../assistant/AssistantWidget";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 
@@ -15,6 +16,7 @@ const DashboardLayout = ({ children }) => {
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
           {children}
         </main>
+        <AssistantWidget />
       </div>
     </div>
   );
