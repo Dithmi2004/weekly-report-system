@@ -1,14 +1,15 @@
 import apiClient from "./apiClient";
 
-const getDashboardData = async (path) => {
-  const response = await apiClient.get(path);
+const getDashboardData = async (path, params) => {
+  const response = await apiClient.get(path, { params });
   return response.data.data;
 };
 
-export const getDashboardSummary = () => getDashboardData("/dashboard/summary");
+export const getDashboardSummary = (params) =>
+  getDashboardData("/dashboard/summary", params);
 
-export const getSubmissionStatus = () =>
-  getDashboardData("/dashboard/submission-status");
+export const getSubmissionStatus = (params) =>
+  getDashboardData("/dashboard/submission-status", params);
 
 export const getProjectDistribution = () =>
   getDashboardData("/dashboard/project-distribution");

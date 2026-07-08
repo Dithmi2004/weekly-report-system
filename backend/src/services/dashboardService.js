@@ -1,11 +1,46 @@
 const db = require("../config/database");
 
-const getSummary = async () => {
+const getWeekRange = (filters = {}) => {
+  if (filters.weekStartDate && filters.weekEndDate) {
+    return {
+      weekStartDate: filters.weekStartDate,
+      weekEndDate: filters.weekEndDate,
+    };
+  }
+
+  return {
+    weekStartDate: "DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)",
+    weekEndDate:
+      "DATE_ADD(DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY), INTERVAL 6 DAY)",
+    useCurrentWeekSql: true,
+  };
+};
+
+const getWeekRangeCondition = (alias, weekRange) => {
+  if (weekRange.useCurrentWeekSql) {
+    return {
+      sql: `${alias}.week_start_date <= ${weekRange.weekEndDate}
+        AND ${alias}.week_end_date >= ${weekRange.weekStartDate}`,
+      params: [],
+    };
+  }
+
+  return {
+    sql: `${alias}.week_start_date <= ? AND ${alias}.week_end_date >= ?`,
+    params: [weekRange.weekEndDate, weekRange.weekStartDate],
+  };
+};
+
+const getSummary = async (filters = {}) => {
+  const weekRange = getWeekRange(filters);
+  const weekCondition = getWeekRangeCondition("wr", weekRange);
+
   const [submitted] = await db.query(`
     SELECT COUNT(*) AS totalSubmitted
-    FROM weekly_reports
-    WHERE status = 'SUBMITTED'
-  `);
+    FROM weekly_reports wr
+    WHERE wr.status = 'SUBMITTED'
+      AND ${weekCondition.sql}
+  `, weekCondition.params);
 
   const [currentCycleSubmissions] = await db.query(`
     SELECT COUNT(DISTINCT wr.user_id) AS submittedMembers
@@ -13,8 +48,8 @@ const getSummary = async () => {
     INNER JOIN users u ON wr.user_id = u.id
     WHERE wr.status = 'SUBMITTED'
       AND u.role = 'TEAM_MEMBER'
-      AND YEARWEEK(wr.week_start_date, 1) = YEARWEEK(CURDATE(), 1)
-  `);
+      AND ${weekCondition.sql}
+  `, weekCondition.params);
 
   const [totalMembers] = await db.query(`
     SELECT COUNT(*) AS totalMembers
@@ -50,19 +85,33 @@ const getSummary = async () => {
   };
 };
 
-const getSubmissionStatus = async () => {
+const getSubmissionStatus = async (filters = {}) => {
+  const weekRange = getWeekRange(filters);
+  const weekCondition = getWeekRangeCondition("wr", weekRange);
+  const isLateCondition = weekRange.useCurrentWeekSql
+    ? "CURDATE() > DATE_ADD(DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY), INTERVAL 6 DAY)"
+    : "? < CURDATE()";
+  const params = [
+    ...(weekRange.useCurrentWeekSql ? [] : [weekRange.weekEndDate]),
+    ...weekCondition.params,
+  ];
+
   const [rows] = await db.query(`
-    SELECT 
+    SELECT
       CONCAT(u.first_name, ' ', u.last_name) AS memberName,
-      CASE 
-        WHEN wr.status = 'SUBMITTED' THEN 'SUBMITTED'
-        WHEN wr.status = 'DRAFT' THEN 'PENDING'
+      CASE
+        WHEN COALESCE(MAX(wr.status = 'SUBMITTED'), 0) = 1 THEN 'SUBMITTED'
+        WHEN ${isLateCondition} THEN 'LATE'
         ELSE 'PENDING'
       END AS status
     FROM users u
-    LEFT JOIN weekly_reports wr ON u.id = wr.user_id
+    LEFT JOIN weekly_reports wr
+      ON u.id = wr.user_id
+      AND ${weekCondition.sql}
     WHERE u.role = 'TEAM_MEMBER'
-  `);
+    GROUP BY u.id, u.first_name, u.last_name
+    ORDER BY u.first_name ASC, u.last_name ASC
+  `, params);
 
   return rows;
 };

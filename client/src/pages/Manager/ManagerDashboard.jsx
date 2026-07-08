@@ -18,9 +18,28 @@ import {
 } from "../../components/dashboard/ManagerDashboardSections";
 import Loader from "../../components/common/Loader";
 import DashboardLayout from "../../components/layout/DashboardLayout";
+import {
+  shiftDateInputValue,
+  toLocalDateInputValue,
+} from "../../components/reports/reportUtils";
+
+const getCurrentWeekFilters = () => {
+  const today = new Date();
+  const day = today.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const start = new Date(today);
+  start.setDate(today.getDate() + diffToMonday);
+  const weekStartDate = toLocalDateInputValue(start);
+
+  return {
+    weekStartDate,
+    weekEndDate: shiftDateInputValue(weekStartDate, 6),
+  };
+};
 
 const ManagerDashboard = () => {
   const navigate = useNavigate();
+  const [weekFilters, setWeekFilters] = useState(getCurrentWeekFilters);
   const [summary, setSummary] = useState(null);
   const [submissionStatus, setSubmissionStatus] = useState([]);
   const [projectDistribution, setProjectDistribution] = useState([]);
@@ -29,11 +48,12 @@ const ManagerDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   const loadDashboard = useCallback(async () => {
+    setLoading(true);
     try {
       const [summaryData, statusData, projectData, trendData, activityData] =
         await Promise.all([
-          getDashboardSummary(),
-          getSubmissionStatus(),
+          getDashboardSummary(weekFilters),
+          getSubmissionStatus(weekFilters),
           getProjectDistribution(),
           getTasksTrend(),
           getRecentActivity(),
@@ -47,7 +67,7 @@ const ManagerDashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [weekFilters]);
 
   useEffect(() => {
     loadDashboard();
@@ -63,6 +83,20 @@ const ManagerDashboard = () => {
     1
   );
 
+  const handleWeekChange = (event) => {
+    const { name, value } = event.target;
+    setWeekFilters((current) => ({
+      ...current,
+      [name]: value,
+      ...(name === "weekStartDate"
+        ? { weekEndDate: shiftDateInputValue(value, 6) }
+        : {}),
+      ...(name === "weekEndDate"
+        ? { weekStartDate: shiftDateInputValue(value, -6) }
+        : {}),
+    }));
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -75,6 +109,28 @@ const ManagerDashboard = () => {
     <DashboardLayout>
       <div className="mx-auto w-full max-w-7xl text-left">
         <ManagerDashboardHero summary={summary} />
+        <div className="mb-4 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2 lg:max-w-xl">
+          <label className="text-sm font-semibold text-slate-700">
+            Week Start
+            <input
+              name="weekStartDate"
+              type="date"
+              value={weekFilters.weekStartDate}
+              onChange={handleWeekChange}
+              className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+            />
+          </label>
+          <label className="text-sm font-semibold text-slate-700">
+            Week End
+            <input
+              name="weekEndDate"
+              type="date"
+              value={weekFilters.weekEndDate}
+              onChange={handleWeekChange}
+              className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+            />
+          </label>
+        </div>
         <ManagerStats
           summary={summary}
           onOpenBlockers={() => navigate("/manager/blockers")}
