@@ -26,6 +26,25 @@ const getUserProfileById = async (userId) => {
   };
 };
 
+const getTeamMembers = async () => {
+  const [users] = await db.query(
+    `SELECT id, first_name, last_name, email, role, created_at
+     FROM users
+     WHERE role = 'TEAM_MEMBER'
+     ORDER BY first_name ASC, last_name ASC`
+  );
+
+  return users.map((user) => ({
+    id: user.id,
+    firstName: user.first_name,
+    lastName: user.last_name,
+    email: user.email,
+    role: user.role,
+    createdAt: user.created_at,
+  }));
+};
+
 module.exports = {
   getUserProfileById,
+  getTeamMembers,
 };

@@ -1,4 +1,7 @@
-const { getUserProfileById } = require("../services/userService");
+const {
+  getTeamMembers,
+  getUserProfileById,
+} = require("../services/userService");
 
 const getProfile = async (req, res) => {
   try {
@@ -24,7 +27,25 @@ const getManagerDashboardAccess = async (req, res) => {
   });
 };
 
+const getTeamMembersForManager = async (req, res) => {
+  try {
+    const members = await getTeamMembers();
+
+    return res.status(200).json({
+      success: true,
+      message: "Team members fetched successfully",
+      data: members,
+    });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || "Server error while fetching team members",
+    });
+  }
+};
+
 module.exports = {
   getProfile,
   getManagerDashboardAccess,
+  getTeamMembersForManager,
 };

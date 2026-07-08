@@ -152,6 +152,7 @@ const getMyWeeklyReports = async (userId) => {
       wr.id,
       wr.week_start_date AS weekStartDate,
       wr.week_end_date AS weekEndDate,
+      wr.hours_worked AS hoursWorked,
       wr.status,
       wr.submitted_at AS submittedAt,
       p.name AS projectName

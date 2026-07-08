@@ -2,7 +2,10 @@ const projectService = require("../services/projectService");
 
 const getProjects = async (req, res) => {
   try {
-    const projects = await projectService.getAllProjects();
+    const hasQuery = Object.keys(req.query).length > 0;
+    const projects = hasQuery
+      ? await projectService.getProjectsPaginated(req.query)
+      : await projectService.getAllProjects();
 
     res.status(200).json({
       success: true,
