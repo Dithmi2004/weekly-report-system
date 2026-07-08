@@ -9,8 +9,11 @@ const TaskPageHero = ({
   helperText,
   searchInput,
   searchPlaceholder,
+  projects = [],
+  selectedProjectId = "ALL",
   minWidthClass = "xl:min-w-[520px]",
   onSearchInputChange,
+  onProjectChange,
   onSearch,
   onExport,
   onCreate,
@@ -43,6 +46,20 @@ const TaskPageHero = ({
             className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 pr-12 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
           />
         </div>
+        {onProjectChange && (
+          <select
+            value={selectedProjectId}
+            onChange={(event) => onProjectChange(event.target.value)}
+            className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+          >
+            <option value="ALL">All projects</option>
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
+            ))}
+          </select>
+        )}
         <Button
           type="submit"
           variant="secondary"

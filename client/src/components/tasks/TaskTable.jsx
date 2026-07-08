@@ -178,6 +178,11 @@ const TaskTable = ({
                             {task.assignedToName}
                           </p>
                           <p className="text-xs text-slate-500">TEAM MEMBER</p>
+                          {task.createdByRole === "TEAM_MEMBER" && (
+                            <p className="mt-1 text-xs font-semibold text-indigo-600">
+                              Added by {task.createdByName}
+                            </p>
+                          )}
                         </td>
                       )}
                       <td className="px-6 py-5">

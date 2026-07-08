@@ -81,8 +81,8 @@ const MemberReportFormPage = () => {
 
   const projectTasks = useMemo(() => {
     if (!selectedProject) return [];
-    return tasks.filter((task) => task.projectName === selectedProject.name);
-  }, [selectedProject, tasks]);
+    return tasks.filter((task) => String(task.projectId) === form.projectId);
+  }, [form.projectId, selectedProject, tasks]);
 
   const completedTasks = useMemo(
     () =>
@@ -156,6 +156,12 @@ const MemberReportFormPage = () => {
       const plannedTaskIds = new Set(plannedTasks.map((task) => String(task.id)));
       const payload = buildReportPayload({
         ...form,
+        manualCompletedTasks: form.manualCompletedTasks.filter((task) =>
+          task.title.trim()
+        ),
+        manualPlannedTasks: form.manualPlannedTasks.filter((task) =>
+          task.title.trim()
+        ),
         completedTaskIds: form.completedTaskIds.filter((taskId) =>
           completedTaskIds.has(taskId)
         ),

@@ -1,4 +1,5 @@
 const db = require("../config/database");
+const { backfillAllManualReportTasks } = require("./weeklyReportService");
 
 const createTask = async (data, managerId) => {
   const {
@@ -31,6 +32,8 @@ const createTask = async (data, managerId) => {
 };
 
 const getTasks = async (filters) => {
+  await backfillAllManualReportTasks();
+
   let query = `
     SELECT 
       t.id,
@@ -39,17 +42,22 @@ const getTasks = async (filters) => {
       t.priority,
       t.deadline,
       t.status,
+      t.project_id AS projectId,
+      t.created_by AS createdBy,
       p.name AS projectName,
-      CONCAT(u.first_name, ' ', u.last_name) AS assignedToName
+      CONCAT(u.first_name, ' ', u.last_name) AS assignedToName,
+      CONCAT(c.first_name, ' ', c.last_name) AS createdByName,
+      c.role AS createdByRole
     FROM tasks t
     INNER JOIN projects p ON t.project_id = p.id
     INNER JOIN users u ON t.assigned_to = u.id
+    LEFT JOIN users c ON t.created_by = c.id
     WHERE 1=1
   `;
 
   const params = [];
 
-  if (filters.projectId) {
+  if (filters.projectId && filters.projectId !== "ALL") {
     query += " AND t.project_id = ?";
     params.push(filters.projectId);
   }
@@ -76,6 +84,8 @@ const getTasks = async (filters) => {
 };
 
 const getTasksPaginated = async (filters = {}) => {
+  await backfillAllManualReportTasks();
+
   const page = Math.max(Number(filters.page) || 1, 1);
   const limit = Math.min(Math.max(Number(filters.limit) || 8, 1), 50);
   const offset = (page - 1) * limit;
@@ -83,7 +93,7 @@ const getTasksPaginated = async (filters = {}) => {
   let whereClause = "WHERE 1=1";
   const params = [];
 
-  if (filters.projectId) {
+  if (filters.projectId && filters.projectId !== "ALL") {
     whereClause += " AND t.project_id = ?";
     params.push(filters.projectId);
   }
@@ -125,6 +135,7 @@ const getTasksPaginated = async (filters = {}) => {
      FROM tasks t
      INNER JOIN projects p ON t.project_id = p.id
      INNER JOIN users u ON t.assigned_to = u.id
+     LEFT JOIN users c ON t.created_by = c.id
      ${whereClause}`,
     params,
   );
@@ -137,12 +148,17 @@ const getTasksPaginated = async (filters = {}) => {
       t.priority,
       t.deadline,
       t.status,
+      t.project_id AS projectId,
       t.assigned_to AS assignedTo,
+      t.created_by AS createdBy,
       p.name AS projectName,
-      CONCAT(u.first_name, ' ', u.last_name) AS assignedToName
+      CONCAT(u.first_name, ' ', u.last_name) AS assignedToName,
+      CONCAT(c.first_name, ' ', c.last_name) AS createdByName,
+      c.role AS createdByRole
     FROM tasks t
     INNER JOIN projects p ON t.project_id = p.id
     INNER JOIN users u ON t.assigned_to = u.id
+    LEFT JOIN users c ON t.created_by = c.id
     ${whereClause}
     ORDER BY 
       CASE WHEN t.deadline IS NULL THEN 1 ELSE 0 END,
@@ -178,6 +194,8 @@ const getTaskById = async (id) => {
 };
 
 const getMyTasks = async (userId) => {
+  await backfillAllManualReportTasks();
+
   const [tasks] = await db.query(
     `SELECT 
       t.id,
@@ -186,6 +204,7 @@ const getMyTasks = async (userId) => {
       t.priority,
       t.deadline,
       t.status,
+      t.project_id AS projectId,
       p.name AS projectName
     FROM tasks t
     INNER JOIN projects p ON t.project_id = p.id
@@ -198,6 +217,8 @@ const getMyTasks = async (userId) => {
 };
 
 const getMyTasksPaginated = async (userId, filters = {}) => {
+  await backfillAllManualReportTasks();
+
   const page = Math.max(Number(filters.page) || 1, 1);
   const limit = Math.min(Math.max(Number(filters.limit) || 8, 1), 50);
   const offset = (page - 1) * limit;
@@ -208,6 +229,11 @@ const getMyTasksPaginated = async (userId, filters = {}) => {
   if (filters.status && filters.status !== "ALL") {
     whereClause += " AND t.status = ?";
     params.push(filters.status);
+  }
+
+  if (filters.projectId && filters.projectId !== "ALL") {
+    whereClause += " AND t.project_id = ?";
+    params.push(filters.projectId);
   }
 
   if (filters.search) {
@@ -232,7 +258,9 @@ const getMyTasksPaginated = async (userId, filters = {}) => {
       t.priority,
       t.deadline,
       t.status,
+      t.project_id AS projectId,
       t.assigned_to AS assignedTo,
+      t.created_by AS createdBy,
       p.name AS projectName
     FROM tasks t
     INNER JOIN projects p ON t.project_id = p.id
