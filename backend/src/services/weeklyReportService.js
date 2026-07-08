@@ -1,5 +1,114 @@
 const db = require("../config/database");
 
+const createManualTask = async (
+  connection,
+  userId,
+  projectId,
+  task,
+  status,
+  deadline,
+) => {
+  const [result] = await connection.query(
+    `INSERT INTO tasks
+     (project_id, assigned_to, created_by, title, description, priority, deadline, status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      projectId,
+      userId,
+      userId,
+      task.title,
+      task.description || null,
+      task.priority || "MEDIUM",
+      deadline || null,
+      status,
+    ],
+  );
+
+  return result.insertId;
+};
+
+const addReportTask = async (
+  connection,
+  reportId,
+  taskId,
+  reportTaskType,
+) => {
+  await connection.query(
+    `INSERT INTO weekly_report_tasks
+     (weekly_report_id, task_id, report_task_type)
+     VALUES (?, ?, ?)`,
+    [reportId, taskId, reportTaskType],
+  );
+};
+
+const backfillManualReportTasks = async (reportId) => {
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [manualTasks] = await connection.query(
+      `SELECT
+        wrt.id,
+        wrt.report_task_type AS reportTaskType,
+        wrt.manual_task_title AS title,
+        wrt.manual_task_description AS description,
+        wr.user_id AS userId,
+        wr.project_id AS projectId,
+        wr.week_end_date AS weekEndDate
+       FROM weekly_report_tasks wrt
+       INNER JOIN weekly_reports wr ON wrt.weekly_report_id = wr.id
+       WHERE wrt.weekly_report_id = ?
+         AND wrt.task_id IS NULL
+         AND wrt.manual_task_title IS NOT NULL`,
+      [reportId],
+    );
+
+    for (const manualTask of manualTasks) {
+      const isCompleted = manualTask.reportTaskType === "MANUAL_COMPLETED";
+      const taskId = await createManualTask(
+        connection,
+        manualTask.userId,
+        manualTask.projectId,
+        {
+          title: manualTask.title,
+          description: manualTask.description,
+          priority: "MEDIUM",
+        },
+        isCompleted ? "COMPLETED" : "TODO",
+        manualTask.weekEndDate,
+      );
+
+      await connection.query(
+        `UPDATE weekly_report_tasks
+         SET task_id = ?, report_task_type = ?
+         WHERE id = ?`,
+        [taskId, isCompleted ? "COMPLETED" : "PLANNED", manualTask.id],
+      );
+    }
+
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+};
+
+const backfillAllManualReportTasks = async () => {
+  const [reports] = await db.query(
+    `SELECT DISTINCT weekly_report_id AS reportId
+     FROM weekly_report_tasks
+     WHERE task_id IS NULL
+       AND manual_task_title IS NOT NULL`,
+  );
+
+  for (const report of reports) {
+    await backfillManualReportTasks(report.reportId);
+  }
+};
+
 const createWeeklyReport = async (userId, data) => {
   const {
     projectId,
@@ -37,39 +146,35 @@ const createWeeklyReport = async (userId, data) => {
     const reportId = result.insertId;
 
     for (const taskId of completedTaskIds) {
-      await connection.query(
-        `INSERT INTO weekly_report_tasks
-         (weekly_report_id, task_id, report_task_type)
-         VALUES (?, ?, 'COMPLETED')`,
-        [reportId, taskId]
-      );
+      await addReportTask(connection, reportId, taskId, "COMPLETED");
     }
 
     for (const taskId of plannedTaskIds) {
-      await connection.query(
-        `INSERT INTO weekly_report_tasks
-         (weekly_report_id, task_id, report_task_type)
-         VALUES (?, ?, 'PLANNED')`,
-        [reportId, taskId]
-      );
+      await addReportTask(connection, reportId, taskId, "PLANNED");
     }
 
     for (const task of manualCompletedTasks) {
-      await connection.query(
-        `INSERT INTO weekly_report_tasks
-         (weekly_report_id, task_id, report_task_type, manual_task_title, manual_task_description)
-         VALUES (?, NULL, 'MANUAL_COMPLETED', ?, ?)`,
-        [reportId, task.title, task.description || null]
+      const taskId = await createManualTask(
+        connection,
+        userId,
+        projectId,
+        task,
+        "COMPLETED",
+        weekEndDate,
       );
+      await addReportTask(connection, reportId, taskId, "COMPLETED");
     }
 
     for (const task of manualPlannedTasks) {
-      await connection.query(
-        `INSERT INTO weekly_report_tasks
-         (weekly_report_id, task_id, report_task_type, manual_task_title, manual_task_description)
-         VALUES (?, NULL, 'MANUAL_PLANNED', ?, ?)`,
-        [reportId, task.title, task.description || null]
+      const taskId = await createManualTask(
+        connection,
+        userId,
+        projectId,
+        task,
+        "TODO",
+        weekEndDate,
       );
+      await addReportTask(connection, reportId, taskId, "PLANNED");
     }
 
     await connection.commit();
@@ -122,6 +227,8 @@ const getWeeklyReportById = async (reportId, userId = null) => {
   }
 
   const report = reports[0];
+
+  await backfillManualReportTasks(reportId);
 
   const [tasks] = await db.query(
     `SELECT 
@@ -215,39 +322,35 @@ const updateWeeklyReport = async (reportId, userId, data) => {
     );
 
     for (const taskId of completedTaskIds) {
-      await connection.query(
-        `INSERT INTO weekly_report_tasks
-         (weekly_report_id, task_id, report_task_type)
-         VALUES (?, ?, 'COMPLETED')`,
-        [reportId, taskId]
-      );
+      await addReportTask(connection, reportId, taskId, "COMPLETED");
     }
 
     for (const taskId of plannedTaskIds) {
-      await connection.query(
-        `INSERT INTO weekly_report_tasks
-         (weekly_report_id, task_id, report_task_type)
-         VALUES (?, ?, 'PLANNED')`,
-        [reportId, taskId]
-      );
+      await addReportTask(connection, reportId, taskId, "PLANNED");
     }
 
     for (const task of manualCompletedTasks) {
-      await connection.query(
-        `INSERT INTO weekly_report_tasks
-         (weekly_report_id, task_id, report_task_type, manual_task_title, manual_task_description)
-         VALUES (?, NULL, 'MANUAL_COMPLETED', ?, ?)`,
-        [reportId, task.title, task.description || null]
+      const taskId = await createManualTask(
+        connection,
+        userId,
+        projectId,
+        task,
+        "COMPLETED",
+        weekEndDate,
       );
+      await addReportTask(connection, reportId, taskId, "COMPLETED");
     }
 
     for (const task of manualPlannedTasks) {
-      await connection.query(
-        `INSERT INTO weekly_report_tasks
-         (weekly_report_id, task_id, report_task_type, manual_task_title, manual_task_description)
-         VALUES (?, NULL, 'MANUAL_PLANNED', ?, ?)`,
-        [reportId, task.title, task.description || null]
+      const taskId = await createManualTask(
+        connection,
+        userId,
+        projectId,
+        task,
+        "TODO",
+        weekEndDate,
       );
+      await addReportTask(connection, reportId, taskId, "PLANNED");
     }
 
     await connection.commit();
@@ -334,4 +437,5 @@ module.exports = {
   updateWeeklyReport,
   submitWeeklyReport,
   getAllReportsForManager,
+  backfillAllManualReportTasks,
 };

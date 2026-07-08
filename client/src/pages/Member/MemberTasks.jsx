@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { getMyProjects } from "../../api/projectApi";
 import { getMyTasks, updateTaskStatus } from "../../api/taskApi";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import TaskPageHero from "../../components/tasks/TaskPageHero";
@@ -13,6 +14,7 @@ import {
 
 const MemberTasks = () => {
   const [tasks, setTasks] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: PAGE_SIZE,
@@ -21,6 +23,7 @@ const MemberTasks = () => {
   });
   const [summaryTasks, setSummaryTasks] = useState([]);
   const [status, setStatus] = useState("ALL");
+  const [projectId, setProjectId] = useState("ALL");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -31,21 +34,33 @@ const MemberTasks = () => {
     setLoading(true);
     try {
       const [pageData, allTasks] = await Promise.all([
-        getMyTasks({ page, limit: PAGE_SIZE, status, search }),
+        getMyTasks({ page, limit: PAGE_SIZE, status, search, projectId }),
         getMyTasks(),
       ]);
 
       setTasks(pageData.items);
       setPagination(pageData.pagination);
-      setSummaryTasks(allTasks);
+      setSummaryTasks(
+        projectId === "ALL"
+          ? allTasks
+          : allTasks.filter((task) => String(task.projectId) === projectId)
+      );
     } finally {
       setLoading(false);
     }
-  }, [page, search, status]);
+  }, [page, projectId, search, status]);
 
   useEffect(() => {
     loadTasks();
   }, [loadTasks]);
+
+  useEffect(() => {
+    const loadProjects = async () => {
+      setProjects(await getMyProjects());
+    };
+
+    loadProjects();
+  }, []);
 
   const summary = useMemo(() => getTaskSummary(summaryTasks), [summaryTasks]);
 
@@ -58,6 +73,11 @@ const MemberTasks = () => {
   const handleTabChange = (value) => {
     setPage(1);
     setStatus(value);
+  };
+
+  const handleProjectChange = (value) => {
+    setPage(1);
+    setProjectId(value);
   };
 
   const handleStatusUpdate = async (taskId, nextTaskStatus) => {
@@ -80,7 +100,10 @@ const MemberTasks = () => {
           helperText="Tasks are created and assigned by managers."
           searchInput={searchInput}
           searchPlaceholder="Search tasks..."
+          projects={projects}
+          selectedProjectId={projectId}
           onSearchInputChange={setSearchInput}
+          onProjectChange={handleProjectChange}
           onSearch={handleSearch}
         />
 

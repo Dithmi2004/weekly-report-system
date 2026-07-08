@@ -31,6 +31,7 @@ const ManagerTasks = () => {
     totalPages: 1,
   });
   const [status, setStatus] = useState("ALL");
+  const [projectId, setProjectId] = useState("ALL");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -47,19 +48,23 @@ const ManagerTasks = () => {
     setLoading(true);
     try {
       const [pageData, allTasks, projectData] = await Promise.all([
-        getTasks({ page, limit: PAGE_SIZE, status, search }),
+        getTasks({ page, limit: PAGE_SIZE, status, search, projectId }),
         getTasks(),
         getProjects(),
       ]);
 
       setTasks(pageData.items);
       setPagination(pageData.pagination);
-      setSummaryTasks(allTasks);
+      setSummaryTasks(
+        projectId === "ALL"
+          ? allTasks
+          : allTasks.filter((task) => String(task.projectId) === projectId)
+      );
       setProjects(projectData);
     } finally {
       setLoading(false);
     }
-  }, [page, search, status]);
+  }, [page, projectId, search, status]);
 
   useEffect(() => {
     loadTasks();
@@ -93,6 +98,11 @@ const ManagerTasks = () => {
   const handleTabChange = (value) => {
     setPage(1);
     setStatus(value);
+  };
+
+  const handleProjectChange = (value) => {
+    setPage(1);
+    setProjectId(value);
   };
 
   const handleFormChange = (event) => {
@@ -237,8 +247,11 @@ const ManagerTasks = () => {
           description="View and manage all tasks across projects and team members."
           searchInput={searchInput}
           searchPlaceholder="Search tasks, members, projects..."
+          projects={projects}
+          selectedProjectId={projectId}
           minWidthClass="xl:min-w-[680px]"
           onSearchInputChange={setSearchInput}
+          onProjectChange={handleProjectChange}
           onSearch={handleSearch}
           onExport={handleExportPdf}
           onCreate={openCreateModal}
