@@ -2,6 +2,7 @@ const express = require("express");
 const {
   getProfile,
   getManagerDashboardAccess,
+  getTeamMembersForManager,
 } = require("../controllers/userController");
 const {
   authenticateUser,
@@ -17,6 +18,13 @@ router.get(
   authenticateUser,
   authorizeRoles("MANAGER"),
   getManagerDashboardAccess
+);
+
+router.get(
+  "/team-members",
+  authenticateUser,
+  authorizeRoles("MANAGER"),
+  getTeamMembersForManager
 );
 
 module.exports = router;

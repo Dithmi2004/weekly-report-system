@@ -25,6 +25,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const memberLinks = [
     { label: "Dashboard", path: "/member/dashboard", icon: LayoutDashboard },
+    { label: "My Projects", path: "/member/projects", icon: FolderKanban },
     { label: "My Tasks", path: "/member/tasks", icon: ListChecks },
     { label: "My Reports", path: "/member/reports", icon: FileText },
     { label: "Create Report", path: "/member/reports/create", icon: FileText },

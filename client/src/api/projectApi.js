@@ -1,7 +1,29 @@
 import apiClient from "./apiClient";
 
-export const getProjects = async () => {
-  const response = await apiClient.get("/projects");
+export const getProjects = async (params) => {
+  const response = await apiClient.get("/projects", { params });
+  return response.data.data;
+};
+
+export const createProject = async (projectData) => {
+  const response = await apiClient.post("/projects", projectData);
+  return response.data.data;
+};
+
+export const updateProject = async (projectId, projectData) => {
+  const response = await apiClient.put(`/projects/${projectId}`, projectData);
+  return response.data.data;
+};
+
+export const deleteProject = async (projectId) => {
+  const response = await apiClient.delete(`/projects/${projectId}`);
+  return response.data;
+};
+
+export const assignProjectMember = async (projectId, userId) => {
+  const response = await apiClient.post(`/projects/${projectId}/members`, {
+    userId,
+  });
   return response.data.data;
 };
 

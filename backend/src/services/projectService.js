@@ -2,12 +2,96 @@ const db = require("../config/database");
 
 const getAllProjects = async () => {
   const [projects] = await db.query(
-    `SELECT id, name, description, status, created_at, updated_at
-     FROM projects
-     ORDER BY created_at DESC`
+    `SELECT 
+        p.id,
+        p.name,
+        p.description,
+        p.status,
+        p.created_at AS createdAt,
+        p.updated_at AS updatedAt,
+        COUNT(DISTINCT pm.user_id) AS memberCount,
+        COUNT(DISTINCT t.id) AS totalTasks,
+        SUM(CASE WHEN t.status = 'COMPLETED' THEN 1 ELSE 0 END) AS completedTasks
+     FROM projects p
+     LEFT JOIN project_members pm ON p.id = pm.project_id
+     LEFT JOIN tasks t ON p.id = t.project_id
+     GROUP BY p.id
+     ORDER BY p.created_at DESC`
   );
 
-  return projects;
+  return projects.map((project) => ({
+    ...project,
+    completedTasks: Number(project.completedTasks) || 0,
+    progress:
+      Number(project.totalTasks) === 0
+        ? 0
+        : Math.round((Number(project.completedTasks || 0) / Number(project.totalTasks)) * 100),
+  }));
+};
+
+const getProjectsPaginated = async (filters = {}) => {
+  const page = Math.max(Number(filters.page) || 1, 1);
+  const limit = Math.min(Math.max(Number(filters.limit) || 6, 1), 50);
+  const offset = (page - 1) * limit;
+
+  let whereClause = "WHERE 1=1";
+  const params = [];
+
+  if (filters.status && filters.status !== "ALL") {
+    whereClause += " AND p.status = ?";
+    params.push(filters.status);
+  }
+
+  if (filters.search) {
+    whereClause += " AND (p.name LIKE ? OR p.description LIKE ?)";
+    const search = `%${filters.search}%`;
+    params.push(search, search);
+  }
+
+  const [countRows] = await db.query(
+    `SELECT COUNT(*) AS total FROM projects p ${whereClause}`,
+    params
+  );
+
+  const [projects] = await db.query(
+    `SELECT 
+        p.id,
+        p.name,
+        p.description,
+        p.status,
+        p.created_at AS createdAt,
+        p.updated_at AS updatedAt,
+        COUNT(DISTINCT pm.user_id) AS memberCount,
+        COUNT(DISTINCT t.id) AS totalTasks,
+        SUM(CASE WHEN t.status = 'COMPLETED' THEN 1 ELSE 0 END) AS completedTasks
+     FROM projects p
+     LEFT JOIN project_members pm ON p.id = pm.project_id
+     LEFT JOIN tasks t ON p.id = t.project_id
+     ${whereClause}
+     GROUP BY p.id
+     ORDER BY p.created_at DESC
+     LIMIT ? OFFSET ?`,
+    [...params, limit, offset]
+  );
+
+  const total = countRows[0].total;
+
+  return {
+    items: projects.map((project) => ({
+      ...project,
+      completedTasks: Number(project.completedTasks) || 0,
+      progress:
+        Number(project.totalTasks) === 0
+          ? 0
+          : Math.round((Number(project.completedTasks || 0) / Number(project.totalTasks)) * 100),
+    })),
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.max(Math.ceil(total / limit), 1),
+    },
+  };
 };
 
 const createProject = async ({ name, description }) => {
@@ -133,6 +217,7 @@ const getMyProjects = async (userId) => {
 
 module.exports = {
   getAllProjects,
+  getProjectsPaginated,
   createProject,
   updateProject,
   deleteProject,

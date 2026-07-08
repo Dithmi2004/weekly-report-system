@@ -51,6 +51,12 @@ const getAllReportsForManager = asyncHandler(async (req, res) => {
   return successResponse(res, "Team reports fetched successfully", reports);
 });
 
+const getManagerWeeklyReportById = asyncHandler(async (req, res) => {
+  const report = await weeklyReportService.getWeeklyReportById(req.params.id);
+
+  return successResponse(res, "Weekly report fetched successfully", report);
+});
+
 module.exports = {
   createWeeklyReport,
   getMyWeeklyReports,
@@ -58,4 +64,5 @@ module.exports = {
   updateWeeklyReport,
   submitWeeklyReport,
   getAllReportsForManager,
+  getManagerWeeklyReportById,
 };

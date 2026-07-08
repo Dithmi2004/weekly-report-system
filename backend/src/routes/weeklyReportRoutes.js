@@ -7,6 +7,7 @@ const {
   updateWeeklyReport,
   submitWeeklyReport,
   getAllReportsForManager,
+  getManagerWeeklyReportById,
 } = require("../controllers/weeklyReportController");
 
 const {
@@ -25,6 +26,13 @@ router.get(
   authenticateUser,
   authorizeRoles("MANAGER"),
   getAllReportsForManager,
+);
+
+router.get(
+  "/manager/:id",
+  authenticateUser,
+  authorizeRoles("MANAGER"),
+  getManagerWeeklyReportById,
 );
 
 router.post(
