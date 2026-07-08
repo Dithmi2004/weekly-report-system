@@ -8,6 +8,7 @@ const {
   submitWeeklyReport,
   getAllReportsForManager,
   getManagerWeeklyReportById,
+  resolveReportBlocker,
 } = require("../controllers/weeklyReportController");
 
 const {
@@ -33,6 +34,13 @@ router.get(
   authenticateUser,
   authorizeRoles("MANAGER"),
   getManagerWeeklyReportById,
+);
+
+router.patch(
+  "/manager/:id/blocker/resolve",
+  authenticateUser,
+  authorizeRoles("MANAGER"),
+  resolveReportBlocker,
 );
 
 router.post(

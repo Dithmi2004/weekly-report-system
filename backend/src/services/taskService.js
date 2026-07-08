@@ -1,5 +1,14 @@
 const db = require("../config/database");
+const notificationService = require("./notificationService");
 const { backfillAllManualReportTasks } = require("./weeklyReportService");
+
+const getProjectName = async (projectId) => {
+  const [projects] = await db.query("SELECT name FROM projects WHERE id = ?", [
+    projectId,
+  ]);
+
+  return projects[0]?.name || "the project";
+};
 
 const createTask = async (data, managerId) => {
   const {
@@ -27,6 +36,16 @@ const createTask = async (data, managerId) => {
       status || "TODO",
     ],
   );
+
+  const projectName = await getProjectName(projectId);
+
+  await notificationService.createNotification({
+    userId: assignedTo,
+    title: "Task assigned",
+    message: `You were assigned "${title}" for ${projectName}.`,
+    type: "TASK_ASSIGNED",
+    link: "/member/tasks",
+  });
 
   return { id: result.insertId };
 };
@@ -160,10 +179,7 @@ const getTasksPaginated = async (filters = {}) => {
     INNER JOIN users u ON t.assigned_to = u.id
     LEFT JOIN users c ON t.created_by = c.id
     ${whereClause}
-    ORDER BY 
-      CASE WHEN t.deadline IS NULL THEN 1 ELSE 0 END,
-      t.deadline ASC,
-      t.created_at DESC
+    ORDER BY t.created_at DESC
     LIMIT ? OFFSET ?`,
     [...params, limit, offset],
   );
@@ -209,7 +225,7 @@ const getMyTasks = async (userId) => {
     FROM tasks t
     INNER JOIN projects p ON t.project_id = p.id
     WHERE t.assigned_to = ?
-    ORDER BY t.deadline ASC`,
+    ORDER BY t.created_at DESC`,
     [userId],
   );
 
@@ -265,10 +281,7 @@ const getMyTasksPaginated = async (userId, filters = {}) => {
     FROM tasks t
     INNER JOIN projects p ON t.project_id = p.id
     ${whereClause}
-    ORDER BY 
-      CASE WHEN t.deadline IS NULL THEN 1 ELSE 0 END,
-      t.deadline ASC,
-      t.created_at DESC
+    ORDER BY t.created_at DESC
     LIMIT ? OFFSET ?`,
     [...params, limit, offset],
   );
@@ -287,7 +300,7 @@ const getMyTasksPaginated = async (userId, filters = {}) => {
 };
 
 const updateTask = async (id, data) => {
-  await getTaskById(id);
+  const existingTask = await getTaskById(id);
 
   const {
     projectId,
@@ -315,6 +328,18 @@ const updateTask = async (id, data) => {
       id,
     ],
   );
+
+  if (Number(existingTask.assigned_to) !== Number(assignedTo)) {
+    const projectName = await getProjectName(projectId);
+
+    await notificationService.createNotification({
+      userId: assignedTo,
+      title: "Task assigned",
+      message: `You were assigned "${title}" for ${projectName}.`,
+      type: "TASK_ASSIGNED",
+      link: "/member/tasks",
+    });
+  }
 
   return getTaskById(id);
 };

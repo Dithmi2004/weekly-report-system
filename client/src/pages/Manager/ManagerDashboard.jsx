@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
   getDashboardSummary,
@@ -19,6 +20,7 @@ import Loader from "../../components/common/Loader";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 
 const ManagerDashboard = () => {
+  const navigate = useNavigate();
   const [summary, setSummary] = useState(null);
   const [submissionStatus, setSubmissionStatus] = useState([]);
   const [projectDistribution, setProjectDistribution] = useState([]);
@@ -73,7 +75,10 @@ const ManagerDashboard = () => {
     <DashboardLayout>
       <div className="mx-auto w-full max-w-7xl text-left">
         <ManagerDashboardHero summary={summary} />
-        <ManagerStats summary={summary} />
+        <ManagerStats
+          summary={summary}
+          onOpenBlockers={() => navigate("/manager/blockers")}
+        />
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
           <ProjectDistributionCard

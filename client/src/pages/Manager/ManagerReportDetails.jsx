@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
-import { getManagerReportById } from "../../api/reportApi";
+import { getManagerReportById, resolveReportBlocker } from "../../api/reportApi";
 import Loader from "../../components/common/Loader";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import ReportDetails from "../../components/reports/ReportDetails";
@@ -11,6 +11,7 @@ const ManagerReportDetails = () => {
   const { id } = useParams();
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [resolvingReportId, setResolvingReportId] = useState(null);
 
   const loadReport = useCallback(async () => {
     setLoading(true);
@@ -24,6 +25,15 @@ const ManagerReportDetails = () => {
   useEffect(() => {
     loadReport();
   }, [loadReport]);
+
+  const handleResolveBlocker = async (reportId, note) => {
+    setResolvingReportId(reportId);
+    try {
+      setReport(await resolveReportBlocker(reportId, note));
+    } finally {
+      setResolvingReportId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -41,7 +51,12 @@ const ManagerReportDetails = () => {
           title="View Report Details"
           description="Review submitted work, blockers, notes, and planned tasks."
         />
-        <ReportDetails mode="manager" report={report} />
+        <ReportDetails
+          mode="manager"
+          report={report}
+          resolvingReportId={resolvingReportId}
+          onResolveBlocker={handleResolveBlocker}
+        />
       </div>
     </DashboardLayout>
   );

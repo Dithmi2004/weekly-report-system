@@ -50,7 +50,7 @@ export const ManagerDashboardHero = ({ summary }) => (
   </section>
 );
 
-export const ManagerStats = ({ summary }) => (
+export const ManagerStats = ({ summary, onOpenBlockers }) => (
   <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
     <StatCard
       title="Submitted Reports"
@@ -82,7 +82,8 @@ export const ManagerStats = ({ summary }) => (
       subtitle="Reports that mention blockers"
       icon={<AlertCircle size={24} />}
       tone="rose"
-      trend="Needs manager attention"
+      trend="Click to view blocker reports"
+      onClick={onOpenBlockers}
     />
   </div>
 );

@@ -7,6 +7,7 @@ const StatCard = ({
   icon,
   tone = "blue",
   trend,
+  onClick,
 }) => {
   const tones = {
     blue: "bg-blue-50 text-blue-600 ring-blue-100",
@@ -15,8 +16,12 @@ const StatCard = ({
     rose: "bg-rose-50 text-rose-600 ring-rose-100",
   };
 
-  return (
-    <Card className="p-4 transition duration-200 hover:-translate-y-0.5 hover:shadow-md">
+  const content = (
+    <Card
+      className={`p-4 transition duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+        onClick ? "cursor-pointer" : ""
+      }`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -45,6 +50,14 @@ const StatCard = ({
         </div>
       )}
     </Card>
+  );
+
+  if (!onClick) return content;
+
+  return (
+    <button type="button" className="block w-full text-left" onClick={onClick}>
+      {content}
+    </button>
   );
 };
 

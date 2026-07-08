@@ -101,6 +101,17 @@ const MemberDashboard = () => {
     .slice(0, 5);
 
   const recentReports = reports.slice(0, 5);
+  const resolvedBlockerNotifications = reports
+    .filter(
+      (report) =>
+        report.blockers?.trim() && report.blockerStatus === "RESOLVED"
+    )
+    .slice(0, 3)
+    .map((report) =>
+      report.blockerResolutionNote
+        ? `Blocker resolved: ${report.blockerResolutionNote}`
+        : `Blocker resolved for ${report.projectName}`
+    );
 
   const projectSummaries = projects.map((project) => {
     const projectTasks = tasks.filter(
@@ -119,6 +130,7 @@ const MemberDashboard = () => {
   });
 
   const notifications = [
+    ...resolvedBlockerNotifications,
     ...upcomingDeadlines
       .filter((task) => {
         const today = new Date();

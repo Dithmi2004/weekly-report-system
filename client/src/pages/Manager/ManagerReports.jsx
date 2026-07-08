@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { getProjects } from "../../api/projectApi";
 import { getAllReports } from "../../api/reportApi";
@@ -13,6 +14,7 @@ const initialFilters = {
   projectId: "",
   weekStartDate: "",
   weekEndDate: "",
+  hasBlockers: "",
 };
 
 const compactFilters = (filters) =>
@@ -21,11 +23,17 @@ const compactFilters = (filters) =>
   );
 
 const ManagerReports = () => {
+  const [searchParams] = useSearchParams();
+  const urlHasBlockers = searchParams.get("hasBlockers") === "true";
+  const defaultFilters = {
+    ...initialFilters,
+    hasBlockers: urlHasBlockers ? "true" : "",
+  };
   const [reports, setReports] = useState([]);
   const [members, setMembers] = useState([]);
   const [projects, setProjects] = useState([]);
-  const [filters, setFilters] = useState(initialFilters);
-  const [appliedFilters, setAppliedFilters] = useState(initialFilters);
+  const [filters, setFilters] = useState(defaultFilters);
+  const [appliedFilters, setAppliedFilters] = useState(defaultFilters);
   const [loading, setLoading] = useState(true);
 
   const loadReports = useCallback(async () => {
@@ -50,8 +58,11 @@ const ManagerReports = () => {
   }, [loadReports]);
 
   const handleFilterChange = (event) => {
-    const { name, value } = event.target;
-    setFilters((current) => ({ ...current, [name]: value }));
+    const { checked, name, type, value } = event.target;
+    setFilters((current) => ({
+      ...current,
+      [name]: type === "checkbox" ? (checked ? "true" : "") : value,
+    }));
   };
 
   const handleFilterSubmit = (event) => {

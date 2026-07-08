@@ -14,23 +14,28 @@ const handleValidationErrors = (req, res, next) => {
   next();
 };
 
-const registerValidator = [
+const createUserValidator = [
   body("firstName").notEmpty().withMessage("First name is required"),
   body("lastName").notEmpty().withMessage("Last name is required"),
   body("email").isEmail().withMessage("Valid email is required"),
   body("password")
     .isLength({ min: 6 })
     .withMessage("Password must be at least 6 characters"),
+  body("role")
+    .isIn(["TEAM_MEMBER", "MANAGER"])
+    .withMessage("Role must be TEAM_MEMBER or MANAGER"),
   handleValidationErrors,
 ];
 
-const loginValidator = [
-  body("email").isEmail().withMessage("Valid email is required"),
-  body("password").notEmpty().withMessage("Password is required"),
+const changePasswordValidator = [
+  body("currentPassword").notEmpty().withMessage("Current password is required"),
+  body("newPassword")
+    .isLength({ min: 6 })
+    .withMessage("New password must be at least 6 characters"),
   handleValidationErrors,
 ];
 
 module.exports = {
-  registerValidator,
-  loginValidator,
+  createUserValidator,
+  changePasswordValidator,
 };
