@@ -8,7 +8,11 @@ const createTask = asyncHandler(async (req, res) => {
 });
 
 const getTasks = asyncHandler(async (req, res) => {
-  const tasks = await taskService.getTasks(req.query);
+  const hasQuery = Object.keys(req.query).length > 0;
+  const tasks = hasQuery
+    ? await taskService.getTasksPaginated(req.query)
+    : await taskService.getTasks(req.query);
+
   return successResponse(res, "Tasks fetched successfully", tasks);
 });
 
@@ -18,7 +22,11 @@ const getTaskById = asyncHandler(async (req, res) => {
 });
 
 const getMyTasks = asyncHandler(async (req, res) => {
-  const tasks = await taskService.getMyTasks(req.user.id);
+  const hasQuery = Object.keys(req.query).length > 0;
+  const tasks = hasQuery
+    ? await taskService.getMyTasksPaginated(req.user.id, req.query)
+    : await taskService.getMyTasks(req.user.id);
+
   return successResponse(res, "My tasks fetched successfully", tasks);
 });
 

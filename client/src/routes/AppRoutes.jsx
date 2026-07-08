@@ -2,7 +2,9 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import LoginPage from "../pages/Auth/LoginPage";
 import ManagerDashboard from "../pages/Manager/ManagerDashboard";
+import ManagerTasks from "../pages/Manager/ManagerTasks";
 import MemberDashboard from "../pages/Member/MemberDashboard";
+import MemberTasks from "../pages/Member/MemberTasks";
 
 import ProtectedRoute from "./ProtectedRoute";
 
@@ -61,12 +63,30 @@ const AppRoutes = () => {
           }
         />
 
+        <Route
+          path="/member/tasks"
+          element={
+            <ProtectedRoute allowedRoles={["TEAM_MEMBER"]}>
+              <MemberTasks />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Manager Routes */}
         <Route
           path="/manager/dashboard"
           element={
             <ProtectedRoute allowedRoles={["MANAGER"]}>
               <ManagerDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/manager/tasks"
+          element={
+            <ProtectedRoute allowedRoles={["MANAGER"]}>
+              <ManagerTasks />
             </ProtectedRoute>
           }
         />
