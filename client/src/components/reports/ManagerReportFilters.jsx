@@ -10,7 +10,7 @@ const ManagerReportFilters = ({
 }) => (
   <form
     onSubmit={onSubmit}
-    className="mt-4 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-2 xl:grid-cols-5"
+    className="mt-4 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-2 xl:grid-cols-6"
   >
     <select
       name="userId"
@@ -54,6 +54,16 @@ const ManagerReportFilters = ({
       onChange={onChange}
       className="h-11 rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
     />
+
+    <label className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700">
+      <input
+        name="hasBlockers"
+        type="checkbox"
+        checked={filters.hasBlockers === "true"}
+        onChange={onChange}
+      />
+      Only blockers
+    </label>
 
     <div className="flex gap-2">
       <Button type="submit" className="flex-1">

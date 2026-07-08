@@ -57,6 +57,16 @@ const getManagerWeeklyReportById = asyncHandler(async (req, res) => {
   return successResponse(res, "Weekly report fetched successfully", report);
 });
 
+const resolveReportBlocker = asyncHandler(async (req, res) => {
+  const report = await weeklyReportService.resolveReportBlocker(
+    req.params.id,
+    req.user.id,
+    req.body.note,
+  );
+
+  return successResponse(res, "Blocker resolved successfully", report);
+});
+
 module.exports = {
   createWeeklyReport,
   getMyWeeklyReports,
@@ -65,4 +75,5 @@ module.exports = {
   submitWeeklyReport,
   getAllReportsForManager,
   getManagerWeeklyReportById,
+  resolveReportBlocker,
 };

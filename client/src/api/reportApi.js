@@ -34,3 +34,11 @@ export const getManagerReportById = async (reportId) => {
   const response = await apiClient.get(`/reports/manager/${reportId}`);
   return response.data.data;
 };
+
+export const resolveReportBlocker = async (reportId, note = "") => {
+  const response = await apiClient.patch(
+    `/reports/manager/${reportId}/blocker/resolve`,
+    { note },
+  );
+  return response.data.data;
+};

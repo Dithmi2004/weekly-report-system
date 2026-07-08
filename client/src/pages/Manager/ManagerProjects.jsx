@@ -45,7 +45,7 @@ const ManagerProjects = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
   const [assigningProject, setAssigningProject] = useState(null);
-  const [selectedUserId, setSelectedUserId] = useState("");
+  const [selectedUserIds, setSelectedUserIds] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [deletingProject, setDeletingProject] = useState(null);
   const [form, setForm] = useState(initialForm);
@@ -126,13 +126,13 @@ const ManagerProjects = () => {
     const currentMembers = await getProjectMembers(project.id);
     setAssigningProject(project);
     setProjectMembers(currentMembers);
-    setSelectedUserId("");
+    setSelectedUserIds([]);
   };
 
   const closeAssignModal = () => {
     setAssigningProject(null);
     setProjectMembers([]);
-    setSelectedUserId("");
+    setSelectedUserIds([]);
   };
 
   const handleSaveProject = async (event) => {
@@ -173,16 +173,28 @@ const ManagerProjects = () => {
 
   const handleAssignMember = async (event) => {
     event.preventDefault();
-    if (!assigningProject || !selectedUserId) return;
+    if (!assigningProject || selectedUserIds.length === 0) return;
 
     setAssigning(true);
     try {
-      await assignProjectMember(assigningProject.id, Number(selectedUserId));
+      await Promise.all(
+        selectedUserIds.map((userId) =>
+          assignProjectMember(assigningProject.id, Number(userId))
+        )
+      );
       closeAssignModal();
       await loadProjects();
     } finally {
       setAssigning(false);
     }
+  };
+
+  const handleAssignMemberToggle = (userId) => {
+    setSelectedUserIds((current) =>
+      current.includes(userId)
+        ? current.filter((selectedId) => selectedId !== userId)
+        : [...current, userId]
+    );
   };
 
   return (
@@ -354,9 +366,9 @@ const ManagerProjects = () => {
         <AssignMemberModal
           project={assigningProject}
           members={availableMembers}
-          selectedUserId={selectedUserId}
+          selectedUserIds={selectedUserIds}
           assigning={assigning}
-          onChange={(event) => setSelectedUserId(event.target.value)}
+          onToggle={handleAssignMemberToggle}
           onClose={closeAssignModal}
           onSubmit={handleAssignMember}
         />

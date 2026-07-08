@@ -5,9 +5,9 @@ import Button from "../common/Button";
 const AssignMemberModal = ({
   project,
   members,
-  selectedUserId,
+  selectedUserIds,
   assigning,
-  onChange,
+  onToggle,
   onClose,
   onSubmit,
 }) => {
@@ -17,10 +17,10 @@ const AssignMemberModal = ({
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
           <div>
             <h2 className="text-xl font-bold text-slate-950">
-              Assign Team Member
+              Assign Team Members
             </h2>
             <p className="text-sm text-slate-500">
-              Add a team member to {project?.name}.
+              Add one or more team members to {project?.name}.
             </p>
           </div>
           <button
@@ -32,22 +32,41 @@ const AssignMemberModal = ({
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4 p-6">
-          <label className="block text-sm font-semibold text-slate-700">
-            Team Member
-            <select
-              required
-              value={selectedUserId}
-              onChange={onChange}
-              className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-            >
-              <option value="">Select team member</option>
-              {members.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.firstName} {member.lastName} - {member.email}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div>
+            <p className="mb-2 text-sm font-semibold text-slate-700">
+              Team Members
+            </p>
+            <div className="max-h-72 space-y-2 overflow-auto rounded-2xl border border-slate-200 p-3">
+              {members.map((member) => {
+                const value = String(member.id);
+                const checked = selectedUserIds.includes(value);
+
+                return (
+                  <label
+                    key={member.id}
+                    className={`flex cursor-pointer items-start gap-3 rounded-xl px-3 py-2 transition ${
+                      checked ? "bg-indigo-50" : "hover:bg-slate-50"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => onToggle(value)}
+                      className="mt-1"
+                    />
+                    <span>
+                      <span className="block font-semibold text-slate-800">
+                        {member.firstName} {member.lastName}
+                      </span>
+                      <span className="text-sm text-slate-500">
+                        {member.email}
+                      </span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
 
           {members.length === 0 && (
             <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
@@ -59,8 +78,17 @@ const AssignMemberModal = ({
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={assigning || members.length === 0}>
-              {assigning ? "Assigning..." : "Assign Member"}
+            <Button
+              type="submit"
+              disabled={
+                assigning || members.length === 0 || selectedUserIds.length === 0
+              }
+            >
+              {assigning
+                ? "Assigning..."
+                : `Assign ${selectedUserIds.length || ""} Member${
+                    selectedUserIds.length === 1 ? "" : "s"
+                  }`}
             </Button>
           </div>
         </form>

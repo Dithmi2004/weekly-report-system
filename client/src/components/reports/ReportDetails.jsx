@@ -1,10 +1,12 @@
-import { Edit3, Send } from "lucide-react";
+import { CheckCircle2, Edit3, Send } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { REPORT_STATUS } from "../../utils/constants";
 import Badge from "../common/Badge";
 import Button from "../common/Button";
 import Card from "../common/Card";
+import Textarea from "../common/Textarea";
 import {
   formatReportDate,
   formatReportStatus,
@@ -47,8 +49,13 @@ const ReportDetails = ({
   report,
   mode,
   submittingReportId,
+  resolvingReportId,
   onSubmit,
+  onResolveBlocker,
 }) => {
+  const [resolutionNote, setResolutionNote] = useState(
+    report.blockerResolutionNote || "",
+  );
   const groupedTasks = groupReportTasks(report.tasks);
 
   return (
@@ -93,9 +100,21 @@ const ReportDetails = ({
           </div>
         )}
 
-        {mode === "manager" && (
-          <Button variant="secondary" disabled>
-            Review
+        {mode === "manager" && report.blockers && (
+          <Button
+            className="inline-flex items-center gap-2"
+            disabled={
+              report.blockerStatus === "RESOLVED" ||
+              resolvingReportId === report.id
+            }
+            onClick={() => onResolveBlocker(report.id, resolutionNote)}
+          >
+            <CheckCircle2 size={16} />
+            {report.blockerStatus === "RESOLVED"
+              ? "Resolved"
+              : resolvingReportId === report.id
+                ? "Resolving..."
+                : "Resolve Blocker"}
           </Button>
         )}
       </div>
@@ -140,6 +159,36 @@ const ReportDetails = ({
           <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
             {report.blockers || "No blockers reported."}
           </p>
+          {report.blockers && (
+            <div className="mt-3">
+              {report.blockerStatus === "RESOLVED" ? (
+                <div className="rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-900">
+                  <p className="font-semibold">Resolved blocker</p>
+                  <p className="mt-1 text-emerald-800">
+                    {report.blockers}
+                  </p>
+                  {report.blockerResolutionNote && (
+                    <p className="mt-3 rounded-xl bg-white/70 px-3 py-2">
+                      {report.blockerResolutionNote}
+                    </p>
+                  )}
+                  {report.blockerResolvedAt && (
+                    <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                      Resolved on {formatReportDate(report.blockerResolvedAt)}
+                    </p>
+                  )}
+                </div>
+              ) : mode === "manager" ? (
+                <Textarea
+                  label="Resolution note"
+                  rows={3}
+                  value={resolutionNote}
+                  onChange={(event) => setResolutionNote(event.target.value)}
+                  placeholder="Optional note for the team member"
+                />
+              ) : null}
+            </div>
+          )}
         </div>
         <div>
           <h3 className="mb-3 font-semibold text-slate-800">Notes</h3>

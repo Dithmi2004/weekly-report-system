@@ -4,7 +4,9 @@ import {
   FolderKanban,
   ListChecks,
   FileText,
+  AlertCircle,
   Users,
+  UserCircle,
   LogOut,
   X,
 } from "lucide-react";
@@ -20,7 +22,9 @@ const Sidebar = ({ isOpen, onClose }) => {
     { label: "Projects", path: "/manager/projects", icon: FolderKanban },
     { label: "Tasks", path: "/manager/tasks", icon: ListChecks },
     { label: "Reports", path: "/manager/reports", icon: FileText },
+    { label: "Blockers", path: "/manager/blockers", icon: AlertCircle },
     { label: "Team Members", path: "/manager/users", icon: Users },
+    { label: "Profile", path: "/manager/profile", icon: UserCircle },
   ];
 
   const memberLinks = [
@@ -29,6 +33,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { label: "My Tasks", path: "/member/tasks", icon: ListChecks },
     { label: "My Reports", path: "/member/reports", icon: FileText },
     { label: "Create Report", path: "/member/reports/create", icon: FileText },
+    { label: "Profile", path: "/member/profile", icon: UserCircle },
   ];
 
   const links = user?.role === USER_ROLES.MANAGER ? managerLinks : memberLinks;

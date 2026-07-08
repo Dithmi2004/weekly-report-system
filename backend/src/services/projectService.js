@@ -1,4 +1,5 @@
 const db = require("../config/database");
+const notificationService = require("./notificationService");
 
 const getAllProjects = async () => {
   const [projects] = await db.query(
@@ -152,7 +153,7 @@ const deleteProject = async (projectId) => {
 };
 
 const assignUserToProject = async (projectId, userId) => {
-  const [project] = await db.query("SELECT id FROM projects WHERE id = ?", [
+  const [project] = await db.query("SELECT id, name FROM projects WHERE id = ?", [
     projectId,
   ]);
 
@@ -170,11 +171,21 @@ const assignUserToProject = async (projectId, userId) => {
     throw error;
   }
 
-  await db.query(
+  const [assignment] = await db.query(
     `INSERT IGNORE INTO project_members (user_id, project_id)
      VALUES (?, ?)`,
     [userId, projectId]
   );
+
+  if (assignment.affectedRows > 0) {
+    await notificationService.createNotification({
+      userId,
+      title: "Project assigned",
+      message: `You were assigned to ${project[0].name}.`,
+      type: "PROJECT_ASSIGNED",
+      link: "/member/projects",
+    });
+  }
 
   return {
     userId,
@@ -206,10 +217,21 @@ const getMyProjects = async (userId) => {
         p.name,
         p.description,
         p.status
-     FROM project_members up
-     INNER JOIN projects p ON up.project_id = p.id
-     WHERE up.user_id = ?`,
-    [userId]
+     FROM projects p
+     WHERE EXISTS (
+       SELECT 1
+       FROM project_members pm
+       WHERE pm.project_id = p.id
+         AND pm.user_id = ?
+     )
+     OR EXISTS (
+       SELECT 1
+       FROM tasks t
+       WHERE t.project_id = p.id
+         AND t.assigned_to = ?
+     )
+     ORDER BY p.created_at DESC`,
+    [userId, userId]
   );
 
   return projects;

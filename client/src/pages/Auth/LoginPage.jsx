@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   AlertCircle,
   BarChart3,
@@ -136,6 +136,16 @@ const LoginPage = () => {
           <button className="login-button" type="submit">
             Login
           </button>
+
+          <p className="text-center text-sm text-slate-500">
+            Need a team member account?{" "}
+            <Link
+              className="font-semibold text-blue-600 hover:text-blue-700"
+              to="/register"
+            >
+              Register
+            </Link>
+          </p>
         </form>
       </section>
     </div>

@@ -1,4 +1,5 @@
 const db = require("../config/database");
+const notificationService = require("./notificationService");
 
 const createManualTask = async (
   connection,
@@ -130,14 +131,15 @@ const createWeeklyReport = async (userId, data) => {
 
     const [result] = await connection.query(
       `INSERT INTO weekly_reports
-       (user_id, project_id, week_start_date, week_end_date, blockers, hours_worked, notes, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'DRAFT')`,
+       (user_id, project_id, week_start_date, week_end_date, blockers, blocker_status, hours_worked, notes, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'DRAFT')`,
       [
         userId,
         projectId,
         weekStartDate,
         weekEndDate,
         blockers || null,
+        blockers?.trim() ? "OPEN" : "NONE",
         hoursWorked || null,
         notes || null,
       ]
@@ -199,6 +201,11 @@ const getWeeklyReportById = async (reportId, userId = null) => {
       wr.week_start_date AS weekStartDate,
       wr.week_end_date AS weekEndDate,
       wr.blockers,
+      wr.blocker_status AS blockerStatus,
+      wr.blocker_resolved_at AS blockerResolvedAt,
+      wr.blocker_resolution_note AS blockerResolutionNote,
+      wr.blocker_resolved_by AS blockerResolvedBy,
+      CONCAT(resolver.first_name, ' ', resolver.last_name) AS blockerResolvedByName,
       wr.hours_worked AS hoursWorked,
       wr.notes,
       wr.status,
@@ -207,6 +214,7 @@ const getWeeklyReportById = async (reportId, userId = null) => {
       wr.updated_at AS updatedAt
     FROM weekly_reports wr
     INNER JOIN users u ON wr.user_id = u.id
+    LEFT JOIN users resolver ON wr.blocker_resolved_by = resolver.id
     INNER JOIN projects p ON wr.project_id = p.id
     WHERE wr.id = ?
   `;
@@ -260,13 +268,17 @@ const getMyWeeklyReports = async (userId) => {
       wr.week_start_date AS weekStartDate,
       wr.week_end_date AS weekEndDate,
       wr.hours_worked AS hoursWorked,
+      wr.blockers,
+      wr.blocker_status AS blockerStatus,
+      wr.blocker_resolved_at AS blockerResolvedAt,
+      wr.blocker_resolution_note AS blockerResolutionNote,
       wr.status,
       wr.submitted_at AS submittedAt,
       p.name AS projectName
      FROM weekly_reports wr
      INNER JOIN projects p ON wr.project_id = p.id
      WHERE wr.user_id = ?
-     ORDER BY wr.week_start_date DESC`,
+     ORDER BY wr.created_at DESC`,
     [userId]
   );
 
@@ -302,13 +314,14 @@ const updateWeeklyReport = async (reportId, userId, data) => {
 
     await connection.query(
       `UPDATE weekly_reports
-       SET project_id = ?, week_start_date = ?, week_end_date = ?, blockers = ?, hours_worked = ?, notes = ?
+       SET project_id = ?, week_start_date = ?, week_end_date = ?, blockers = ?, blocker_status = ?, blocker_resolved_at = NULL, blocker_resolution_note = NULL, blocker_resolved_by = NULL, hours_worked = ?, notes = ?
        WHERE id = ? AND user_id = ?`,
       [
         projectId,
         weekStartDate,
         weekEndDate,
         blockers || null,
+        blockers?.trim() ? "OPEN" : "NONE",
         hoursWorked || null,
         notes || null,
         reportId,
@@ -380,7 +393,56 @@ const submitWeeklyReport = async (reportId, userId) => {
     [reportId, userId]
   );
 
-  return getWeeklyReportById(reportId, userId);
+  const submittedReport = await getWeeklyReportById(reportId, userId);
+
+  await notificationService.notifyManagers({
+    title: "Weekly report submitted",
+    message: `${submittedReport.memberName} submitted a report for ${submittedReport.projectName}.`,
+    type: "REPORT_SUBMITTED",
+    link: `/manager/reports/${submittedReport.id}`,
+  });
+
+  return submittedReport;
+};
+
+const resolveReportBlocker = async (reportId, managerId, note = null) => {
+  const report = await getWeeklyReportById(reportId);
+
+  if (!report.blockers?.trim()) {
+    const error = new Error("This report does not have a blocker to resolve");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (report.blockerStatus === "RESOLVED") {
+    const error = new Error("Blocker is already resolved");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  await db.query(
+    `UPDATE weekly_reports
+     SET blocker_status = 'RESOLVED',
+         blocker_resolved_at = NOW(),
+         blocker_resolution_note = ?,
+         blocker_resolved_by = ?
+     WHERE id = ?`,
+    [note?.trim() || null, managerId, reportId],
+  );
+
+  const resolvedReport = await getWeeklyReportById(reportId);
+
+  await notificationService.createNotification({
+    userId: resolvedReport.userId,
+    title: "Blocker resolved",
+    message: note?.trim()
+      ? `Blocker resolved: ${resolvedReport.blockers}. Note: ${note.trim()}`
+      : `Blocker resolved: ${resolvedReport.blockers}.`,
+    type: "BLOCKER_RESOLVED",
+    link: `/member/reports/${resolvedReport.id}`,
+  });
+
+  return resolvedReport;
 };
 
 const getAllReportsForManager = async (filters) => {
@@ -394,6 +456,9 @@ const getAllReportsForManager = async (filters) => {
       wr.status,
       wr.submitted_at AS submittedAt,
       wr.blockers,
+      wr.blocker_status AS blockerStatus,
+      wr.blocker_resolved_at AS blockerResolvedAt,
+      wr.blocker_resolution_note AS blockerResolutionNote,
       wr.hours_worked AS hoursWorked
     FROM weekly_reports wr
     INNER JOIN users u ON wr.user_id = u.id
@@ -423,7 +488,11 @@ const getAllReportsForManager = async (filters) => {
     params.push(filters.weekEndDate);
   }
 
-  query += " ORDER BY wr.week_start_date DESC";
+  if (filters.hasBlockers === "true") {
+    query += " AND wr.blockers IS NOT NULL AND TRIM(wr.blockers) <> ''";
+  }
+
+  query += " ORDER BY wr.created_at DESC";
 
   const [reports] = await db.query(query, params);
 
@@ -437,5 +506,6 @@ module.exports = {
   updateWeeklyReport,
   submitWeeklyReport,
   getAllReportsForManager,
+  resolveReportBlocker,
   backfillAllManualReportTasks,
 };

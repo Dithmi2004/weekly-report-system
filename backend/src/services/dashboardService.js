@@ -16,7 +16,9 @@ const getSummary = async () => {
   const [openBlockers] = await db.query(`
     SELECT COUNT(*) AS openBlockers
     FROM weekly_reports
-    WHERE blockers IS NOT NULL AND blockers <> ''
+    WHERE blockers IS NOT NULL
+      AND TRIM(blockers) <> ''
+      AND blocker_status = 'OPEN'
   `);
 
   const complianceRate =

@@ -14,7 +14,7 @@ const generateToken = (user) => {
   );
 };
 
-const registerUser = async ({ firstName, lastName, email, password, role }) => {
+const registerUser = async ({ firstName, lastName, email, password }) => {
   const [existingUsers] = await db.query(
     "SELECT id FROM users WHERE email = ?",
     [email]
@@ -27,7 +27,7 @@ const registerUser = async ({ firstName, lastName, email, password, role }) => {
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  const userRole = role || "TEAM_MEMBER";
+  const userRole = "TEAM_MEMBER";
 
   const [result] = await db.query(
     `INSERT INTO users 
