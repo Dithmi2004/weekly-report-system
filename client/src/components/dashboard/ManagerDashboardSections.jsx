@@ -14,6 +14,12 @@ import EmptyState from "../common/EmptyState";
 import PageHeader from "../layout/PageHeader";
 import StatCard from "./StatCard";
 
+const submissionStatusVariant = {
+  SUBMITTED: "success",
+  PENDING: "warning",
+  LATE: "danger",
+};
+
 export const ManagerDashboardHero = ({ summary }) => (
   <section className="mb-6 overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-white via-blue-50 to-slate-50 p-5 shadow-sm sm:p-6">
     <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
@@ -164,7 +170,7 @@ export const SubmissionStatusCard = ({ items }) => (
                 Weekly report status
               </p>
             </div>
-            <Badge variant={item.status === "SUBMITTED" ? "success" : "warning"}>
+            <Badge variant={submissionStatusVariant[item.status] ?? "default"}>
               {item.status}
             </Badge>
           </div>

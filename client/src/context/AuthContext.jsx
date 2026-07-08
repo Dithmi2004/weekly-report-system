@@ -1,9 +1,7 @@
 import { createContext, useEffect, useState } from "react";
-import { loginUser, getUserProfile } from "../api/authApi";
+import { loginUser, getUserProfile, logoutUser } from "../api/authApi";
 import {
-  saveToken,
   saveUser,
-  getToken,
   getUser,
   clearAuthStorage,
 } from "../utils/tokenStorage";
@@ -14,19 +12,24 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(getUser());
   const [loading, setLoading] = useState(true);
 
-  const isAuthenticated = Boolean(getToken() && user);
+  const isAuthenticated = Boolean(user);
 
   const login = async (credentials) => {
     const response = await loginUser(credentials);
 
-    saveToken(response.token);
+    clearAuthStorage();
     saveUser(response.user);
     setUser(response.user);
 
     return response.user;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await logoutUser();
+    } catch (error) {
+    }
+
     clearAuthStorage();
     setUser(null);
     window.location.href = "/login";
@@ -34,13 +37,6 @@ export const AuthProvider = ({ children }) => {
 
   const loadUser = async () => {
     try {
-      const token = getToken();
-
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-
       const response = await getUserProfile();
       saveUser(response.data);
       setUser(response.data);

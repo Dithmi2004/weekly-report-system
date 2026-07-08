@@ -1,5 +1,12 @@
 const { registerUser, loginUser } = require("../services/authService");
 
+const getAuthCookieOptions = () => ({
+  httpOnly: true,
+  sameSite: "lax",
+  secure: process.env.NODE_ENV === "production",
+  maxAge: 1000 * 60 * 60 * 24,
+});
+
 const register = async (req, res) => {
   try {
     const user = await registerUser(req.body);
@@ -21,10 +28,11 @@ const login = async (req, res) => {
   try {
     const result = await loginUser(req.body);
 
+    res.cookie("auth_token", result.token, getAuthCookieOptions());
+
     return res.status(200).json({
       success: true,
       message: "Login successful",
-      token: result.token,
       user: result.user,
     });
   } catch (error) {
@@ -35,7 +43,17 @@ const login = async (req, res) => {
   }
 };
 
+const logout = (req, res) => {
+  res.clearCookie("auth_token", getAuthCookieOptions());
+
+  return res.status(200).json({
+    success: true,
+    message: "Logout successful",
+  });
+};
+
 module.exports = {
   register,
   login,
+  logout,
 };

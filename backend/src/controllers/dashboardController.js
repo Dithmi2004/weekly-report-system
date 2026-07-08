@@ -3,12 +3,12 @@ const asyncHandler = require("../utils/asyncHandler");
 const { successResponse } = require("../utils/apiResponse");
 
 const getSummary = asyncHandler(async (req, res) => {
-  const data = await dashboardService.getSummary();
+  const data = await dashboardService.getSummary(req.query);
   return successResponse(res, "Dashboard summary fetched successfully", data);
 });
 
 const getSubmissionStatus = asyncHandler(async (req, res) => {
-  const data = await dashboardService.getSubmissionStatus();
+  const data = await dashboardService.getSubmissionStatus(req.query);
   return successResponse(res, "Submission status fetched successfully", data);
 });
 
