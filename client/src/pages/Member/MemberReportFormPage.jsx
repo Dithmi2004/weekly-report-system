@@ -17,6 +17,7 @@ import {
   buildReportFormFromDetail,
   buildReportPayload,
   initialReportForm,
+  shiftDateInputValue,
 } from "../../components/reports/reportUtils";
 import { REPORT_STATUS, TASK_STATUS } from "../../utils/constants";
 
@@ -107,6 +108,12 @@ const MemberReportFormPage = () => {
     setForm((current) => ({
       ...current,
       [name]: value,
+      ...(name === "weekStartDate"
+        ? { weekEndDate: shiftDateInputValue(value, 6) }
+        : {}),
+      ...(name === "weekEndDate"
+        ? { weekStartDate: shiftDateInputValue(value, -6) }
+        : {}),
       ...(name === "projectId"
         ? { completedTaskIds: [], plannedTaskIds: [] }
         : {}),

@@ -7,6 +7,15 @@ const getSummary = async () => {
     WHERE status = 'SUBMITTED'
   `);
 
+  const [currentCycleSubmissions] = await db.query(`
+    SELECT COUNT(DISTINCT wr.user_id) AS submittedMembers
+    FROM weekly_reports wr
+    INNER JOIN users u ON wr.user_id = u.id
+    WHERE wr.status = 'SUBMITTED'
+      AND u.role = 'TEAM_MEMBER'
+      AND YEARWEEK(wr.week_start_date, 1) = YEARWEEK(CURDATE(), 1)
+  `);
+
   const [totalMembers] = await db.query(`
     SELECT COUNT(*) AS totalMembers
     FROM users
@@ -24,7 +33,14 @@ const getSummary = async () => {
   const complianceRate =
     totalMembers[0].totalMembers === 0
       ? 0
-      : Math.round((submitted[0].totalSubmitted / totalMembers[0].totalMembers) * 100);
+      : Math.min(
+          100,
+          Math.round(
+            (currentCycleSubmissions[0].submittedMembers /
+              totalMembers[0].totalMembers) *
+              100
+          )
+        );
 
   return {
     totalSubmitted: submitted[0].totalSubmitted,

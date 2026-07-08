@@ -145,7 +145,9 @@ const MemberDashboard = () => {
     !currentWeekReport || currentWeekReport.status !== REPORT_STATUS.SUBMITTED
       ? "Weekly report not submitted"
       : null,
-    tasks.length > 0 ? `${tasks.length} assigned tasks in your queue` : null,
+    pendingTasks.length > 0
+      ? `${pendingTasks.length} remaining tasks in your queue`
+      : null,
   ].filter(Boolean);
 
   const chartData = {
