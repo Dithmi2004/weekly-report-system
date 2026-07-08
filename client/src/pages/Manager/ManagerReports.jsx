@@ -8,6 +8,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import ManagerReportFilters from "../../components/reports/ManagerReportFilters";
 import ReportList from "../../components/reports/ReportList";
 import ReportPageHero from "../../components/reports/ReportPageHero";
+import { shiftDateInputValue } from "../../components/reports/reportUtils";
 
 const initialFilters = {
   userId: "",
@@ -62,6 +63,12 @@ const ManagerReports = () => {
     setFilters((current) => ({
       ...current,
       [name]: type === "checkbox" ? (checked ? "true" : "") : value,
+      ...(name === "weekStartDate"
+        ? { weekEndDate: shiftDateInputValue(value, 6) }
+        : {}),
+      ...(name === "weekEndDate"
+        ? { weekStartDate: shiftDateInputValue(value, -6) }
+        : {}),
     }));
   };
 
