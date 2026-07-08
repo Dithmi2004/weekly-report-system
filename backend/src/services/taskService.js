@@ -75,6 +75,96 @@ const getTasks = async (filters) => {
   return tasks;
 };
 
+const getTasksPaginated = async (filters = {}) => {
+  const page = Math.max(Number(filters.page) || 1, 1);
+  const limit = Math.min(Math.max(Number(filters.limit) || 8, 1), 50);
+  const offset = (page - 1) * limit;
+
+  let whereClause = "WHERE 1=1";
+  const params = [];
+
+  if (filters.projectId) {
+    whereClause += " AND t.project_id = ?";
+    params.push(filters.projectId);
+  }
+
+  if (filters.assignedTo) {
+    whereClause += " AND t.assigned_to = ?";
+    params.push(filters.assignedTo);
+  }
+
+  if (filters.status && filters.status !== "ALL" && filters.status !== "OVERDUE") {
+    whereClause += " AND t.status = ?";
+    params.push(filters.status);
+  }
+
+  if (filters.status === "OVERDUE") {
+    whereClause += " AND t.status <> 'COMPLETED' AND t.deadline < CURDATE()";
+  }
+
+  if (filters.priority) {
+    whereClause += " AND t.priority = ?";
+    params.push(filters.priority);
+  }
+
+  if (filters.search) {
+    whereClause += `
+      AND (
+        t.title LIKE ? OR
+        t.description LIKE ? OR
+        p.name LIKE ? OR
+        CONCAT(u.first_name, ' ', u.last_name) LIKE ?
+      )
+    `;
+    const search = `%${filters.search}%`;
+    params.push(search, search, search, search);
+  }
+
+  const [countRows] = await db.query(
+    `SELECT COUNT(*) AS total
+     FROM tasks t
+     INNER JOIN projects p ON t.project_id = p.id
+     INNER JOIN users u ON t.assigned_to = u.id
+     ${whereClause}`,
+    params,
+  );
+
+  const [tasks] = await db.query(
+    `SELECT 
+      t.id,
+      t.title,
+      t.description,
+      t.priority,
+      t.deadline,
+      t.status,
+      t.assigned_to AS assignedTo,
+      p.name AS projectName,
+      CONCAT(u.first_name, ' ', u.last_name) AS assignedToName
+    FROM tasks t
+    INNER JOIN projects p ON t.project_id = p.id
+    INNER JOIN users u ON t.assigned_to = u.id
+    ${whereClause}
+    ORDER BY 
+      CASE WHEN t.deadline IS NULL THEN 1 ELSE 0 END,
+      t.deadline ASC,
+      t.created_at DESC
+    LIMIT ? OFFSET ?`,
+    [...params, limit, offset],
+  );
+
+  const total = countRows[0].total;
+
+  return {
+    items: tasks,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.max(Math.ceil(total / limit), 1),
+    },
+  };
+};
+
 const getTaskById = async (id) => {
   const [tasks] = await db.query(`SELECT * FROM tasks WHERE id = ?`, [id]);
 
@@ -105,6 +195,67 @@ const getMyTasks = async (userId) => {
   );
 
   return tasks;
+};
+
+const getMyTasksPaginated = async (userId, filters = {}) => {
+  const page = Math.max(Number(filters.page) || 1, 1);
+  const limit = Math.min(Math.max(Number(filters.limit) || 8, 1), 50);
+  const offset = (page - 1) * limit;
+
+  let whereClause = "WHERE t.assigned_to = ?";
+  const params = [userId];
+
+  if (filters.status && filters.status !== "ALL") {
+    whereClause += " AND t.status = ?";
+    params.push(filters.status);
+  }
+
+  if (filters.search) {
+    whereClause += " AND (t.title LIKE ? OR t.description LIKE ? OR p.name LIKE ?)";
+    const search = `%${filters.search}%`;
+    params.push(search, search, search);
+  }
+
+  const [countRows] = await db.query(
+    `SELECT COUNT(*) AS total
+     FROM tasks t
+     INNER JOIN projects p ON t.project_id = p.id
+     ${whereClause}`,
+    params,
+  );
+
+  const [tasks] = await db.query(
+    `SELECT 
+      t.id,
+      t.title,
+      t.description,
+      t.priority,
+      t.deadline,
+      t.status,
+      t.assigned_to AS assignedTo,
+      p.name AS projectName
+    FROM tasks t
+    INNER JOIN projects p ON t.project_id = p.id
+    ${whereClause}
+    ORDER BY 
+      CASE WHEN t.deadline IS NULL THEN 1 ELSE 0 END,
+      t.deadline ASC,
+      t.created_at DESC
+    LIMIT ? OFFSET ?`,
+    [...params, limit, offset],
+  );
+
+  const total = countRows[0].total;
+
+  return {
+    items: tasks,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.max(Math.ceil(total / limit), 1),
+    },
+  };
 };
 
 const updateTask = async (id, data) => {
@@ -176,8 +327,10 @@ const updateMyTaskStatus = async (taskId, userId, status) => {
 module.exports = {
   createTask,
   getTasks,
+  getTasksPaginated,
   getTaskById,
   getMyTasks,
+  getMyTasksPaginated,
   updateTask,
   updateMyTaskStatus,
   deleteTask,
