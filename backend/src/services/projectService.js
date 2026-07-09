@@ -163,11 +163,14 @@ const assignUserToProject = async (projectId, userId) => {
     throw error;
   }
 
-  const [user] = await db.query("SELECT id FROM users WHERE id = ?", [userId]);
+  const [user] = await db.query(
+    "SELECT id FROM users WHERE id = ? AND role = 'TEAM_MEMBER'",
+    [userId],
+  );
 
   if (user.length === 0) {
-    const error = new Error("User not found");
-    error.statusCode = 404;
+    const error = new Error("Project member must be a valid team member");
+    error.statusCode = 400;
     throw error;
   }
 

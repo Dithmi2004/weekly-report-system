@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Filter, FolderKanban, Plus, Search, X } from "lucide-react";
 
 import {
@@ -53,7 +53,7 @@ const ManagerProjects = () => {
   const [assigning, setAssigning] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const loadProjects = async () => {
+  const loadProjects = useCallback(async () => {
     setLoading(true);
     try {
       const [pageData, allProjects, teamMemberData] = await Promise.all([
@@ -69,11 +69,11 @@ const ManagerProjects = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, status, search]);
 
   useEffect(() => {
     loadProjects();
-  }, [page, status, search]);
+  }, [loadProjects]);
 
   const statusOptions = useMemo(
     () => [

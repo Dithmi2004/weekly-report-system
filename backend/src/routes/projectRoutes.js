@@ -22,7 +22,7 @@ const {
 
 const router = express.Router();
 
-router.get("/", authenticateUser, getProjects);
+router.get("/", authenticateUser, authorizeRoles("MANAGER"), getProjects);
 
 router.get("/my-projects", authenticateUser, getMyProjects);
 

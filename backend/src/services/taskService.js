@@ -21,6 +21,8 @@ const createTask = async (data, managerId) => {
     status,
   } = data;
 
+  await validateTaskAssignment(projectId, assignedTo);
+
   const [result] = await db.query(
     `INSERT INTO tasks 
     (project_id, assigned_to, created_by, title, description, priority, deadline, status)
@@ -209,6 +211,18 @@ const getTaskById = async (id) => {
   return tasks[0];
 };
 
+const getTaskByIdForUser = async (id, user) => {
+  const task = await getTaskById(id);
+
+  if (user.role !== "MANAGER" && Number(task.assigned_to) !== Number(user.id)) {
+    const error = new Error("You are not allowed to view this task");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  return task;
+};
+
 const getMyTasks = async (userId) => {
   await backfillAllManualReportTasks();
 
@@ -312,6 +326,8 @@ const updateTask = async (id, data) => {
     status,
   } = data;
 
+  await validateTaskAssignment(projectId, assignedTo);
+
   await db.query(
     `UPDATE tasks
      SET project_id = ?, assigned_to = ?, title = ?, description = ?, 
@@ -366,7 +382,7 @@ const updateMyTaskStatus = async (taskId, userId, status) => {
 
   const task = tasks[0];
 
-  if (task.assigned_to !== userId) {
+  if (Number(task.assigned_to) !== Number(userId)) {
     const error = new Error("You are not allowed to update this task");
     error.statusCode = 403;
     throw error;
@@ -377,11 +393,48 @@ const updateMyTaskStatus = async (taskId, userId, status) => {
   return getTaskById(taskId);
 };
 
+const validateTaskAssignment = async (projectId, assignedTo) => {
+  const [projects] = await db.query("SELECT id FROM projects WHERE id = ?", [
+    projectId,
+  ]);
+
+  if (projects.length === 0) {
+    const error = new Error("Project not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const [users] = await db.query(
+    "SELECT id FROM users WHERE id = ? AND role = 'TEAM_MEMBER'",
+    [assignedTo],
+  );
+
+  if (users.length === 0) {
+    const error = new Error("Assigned user must be a valid team member");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const [memberships] = await db.query(
+    `SELECT user_id
+     FROM project_members
+     WHERE project_id = ? AND user_id = ?`,
+    [projectId, assignedTo],
+  );
+
+  if (memberships.length === 0) {
+    const error = new Error("Assigned user must be a member of the project");
+    error.statusCode = 400;
+    throw error;
+  }
+};
+
 module.exports = {
   createTask,
   getTasks,
   getTasksPaginated,
   getTaskById,
+  getTaskByIdForUser,
   getMyTasks,
   getMyTasksPaginated,
   updateTask,

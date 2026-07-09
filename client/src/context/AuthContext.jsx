@@ -1,12 +1,11 @@
-import { createContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { loginUser, getUserProfile, logoutUser } from "../api/authApi";
+import { AuthContext } from "./authContextValue";
 import {
   saveUser,
   getUser,
   clearAuthStorage,
 } from "../utils/tokenStorage";
-
-export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(getUser());
@@ -27,7 +26,7 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       await logoutUser();
-    } catch (error) {
+    } catch {
     }
 
     clearAuthStorage();
@@ -40,7 +39,7 @@ export const AuthProvider = ({ children }) => {
       const response = await getUserProfile();
       saveUser(response.data);
       setUser(response.data);
-    } catch (error) {
+    } catch {
       clearAuthStorage();
       setUser(null);
     } finally {

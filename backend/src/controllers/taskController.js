@@ -17,7 +17,7 @@ const getTasks = asyncHandler(async (req, res) => {
 });
 
 const getTaskById = asyncHandler(async (req, res) => {
-  const task = await taskService.getTaskById(req.params.id);
+  const task = await taskService.getTaskByIdForUser(req.params.id, req.user);
   return successResponse(res, "Task fetched successfully", task);
 });
 

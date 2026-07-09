@@ -1,125 +1,49 @@
 const projectService = require("../services/projectService");
+const asyncHandler = require("../utils/asyncHandler");
+const { successResponse } = require("../utils/apiResponse");
 
-const getProjects = async (req, res) => {
-  try {
-    const hasQuery = Object.keys(req.query).length > 0;
-    const projects = hasQuery
-      ? await projectService.getProjectsPaginated(req.query)
-      : await projectService.getAllProjects();
+const getProjects = asyncHandler(async (req, res) => {
+  const hasQuery = Object.keys(req.query).length > 0;
+  const projects = hasQuery
+    ? await projectService.getProjectsPaginated(req.query)
+    : await projectService.getAllProjects();
 
-    res.status(200).json({
-      success: true,
-      data: projects,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Server error while fetching projects",
-    });
-  }
-};
+  return successResponse(res, "Projects fetched successfully", projects);
+});
 
-const createProject = async (req, res) => {
-  try {
-    const project = await projectService.createProject(req.body);
+const createProject = asyncHandler(async (req, res) => {
+  const project = await projectService.createProject(req.body);
+  return successResponse(res, "Project created successfully", project, 201);
+});
 
-    res.status(201).json({
-      success: true,
-      message: "Project created successfully",
-      data: project,
-    });
-  } catch (error) {
-    res.status(error.statusCode || 500).json({
-      success: false,
-      message: error.message || "Server error while creating project",
-    });
-  }
-};
+const updateProject = asyncHandler(async (req, res) => {
+  const project = await projectService.updateProject(req.params.id, req.body);
+  return successResponse(res, "Project updated successfully", project);
+});
 
-const updateProject = async (req, res) => {
-  try {
-    const project = await projectService.updateProject(req.params.id, req.body);
+const deleteProject = asyncHandler(async (req, res) => {
+  await projectService.deleteProject(req.params.id);
+  return successResponse(res, "Project deleted successfully");
+});
 
-    res.status(200).json({
-      success: true,
-      message: "Project updated successfully",
-      data: project,
-    });
-  } catch (error) {
-    res.status(error.statusCode || 500).json({
-      success: false,
-      message: error.message || "Server error while updating project",
-    });
-  }
-};
+const assignMember = asyncHandler(async (req, res) => {
+  const result = await projectService.assignUserToProject(
+    req.params.id,
+    req.body.userId,
+  );
 
-const deleteProject = async (req, res) => {
-  try {
-    await projectService.deleteProject(req.params.id);
+  return successResponse(res, "User assigned to project successfully", result);
+});
 
-    res.status(200).json({
-      success: true,
-      message: "Project deleted successfully",
-    });
-  } catch (error) {
-    res.status(error.statusCode || 500).json({
-      success: false,
-      message: error.message || "Server error while deleting project",
-    });
-  }
-};
+const getMembers = asyncHandler(async (req, res) => {
+  const members = await projectService.getProjectMembers(req.params.id);
+  return successResponse(res, "Project members fetched successfully", members);
+});
 
-const assignMember = async (req, res) => {
-  try {
-    const result = await projectService.assignUserToProject(
-      req.params.id,
-      req.body.userId
-    );
-
-    res.status(200).json({
-      success: true,
-      message: "User assigned to project successfully",
-      data: result,
-    });
-  } catch (error) {
-    res.status(error.statusCode || 500).json({
-      success: false,
-      message: error.message || "Server error while assigning user",
-    });
-  }
-};
-
-const getMembers = async (req, res) => {
-  try {
-    const members = await projectService.getProjectMembers(req.params.id);
-
-    res.status(200).json({
-      success: true,
-      data: members,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Server error while fetching project members",
-    });
-  }
-};
-
-const getMyProjects = async (req, res) => {
-  try {
-    const projects = await projectService.getMyProjects(req.user.id);
-
-    res.status(200).json({
-      success: true,
-      data: projects,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Server error while fetching assigned projects",
-    });
-  }
-};
+const getMyProjects = asyncHandler(async (req, res) => {
+  const projects = await projectService.getMyProjects(req.user.id);
+  return successResponse(res, "Assigned projects fetched successfully", projects);
+});
 
 module.exports = {
   getProjects,

@@ -22,7 +22,7 @@ const {
 
 const router = express.Router();
 
-router.get("/", authenticateUser, getTasks);
+router.get("/", authenticateUser, authorizeRoles("MANAGER"), getTasks);
 router.get("/my-tasks", authenticateUser, getMyTasks);
 router.get("/:id", authenticateUser, getTaskById);
 

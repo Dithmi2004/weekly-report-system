@@ -1,185 +1,156 @@
-# Weekly Report Management System
+# Weekly Report System
 
-Full-stack weekly report generator and team dashboard with role-based access, structured weekly report submission, project/task management, manager analytics, and optional AI assistant support.
+Full-stack weekly report and team dashboard system for managers and team members. The application supports role-based access, project/task management, structured weekly reports, blocker tracking, notifications, manager analytics, and an AI chat assistant.
 
 ## Tech Stack
 
-### Frontend
-- React.js
-- Vite
-- Tailwind CSS
-- Axios
-- React Router DOM
-- Chart.js
-- React Chart.js 2
-- Lucide React
+- Frontend: React, Vite, Tailwind CSS, React Router, Axios, Chart.js
+- Backend: Node.js, Express, MySQL, JWT, bcrypt, express-validator
+- AI assistant: Gemini API called only from the backend
 
-### Backend
-- Node.js
-- Express.js
-- MySQL
-- JWT Authentication
-- bcrypt
-- Express Validator
-- dotenv
-- CORS
+## Core Features
 
-### Database
-- MySQL
+- Authentication with HTTP-only JWT cookie support
+- Role-based UI and API access for `MANAGER` and `TEAM_MEMBER`
+- Manager dashboard with submission status, project distribution, task trends, recent activity, and open blockers
+- Project creation, editing, member assignment, and status management
+- Task creation, assignment, update, deletion, filtering, and member task status updates
+- Weekly report drafts/submission with completed tasks, planned tasks, manual tasks, hours, notes, and blockers
+- Blocker resolution workflow with notifications
+- Role-scoped AI assistant for reports, tasks, projects, blockers, workload, and submissions
 
-## Project Structure
+## Architecture
 
-<img width="355" height="783" alt="image" src="https://github.com/user-attachments/assets/b86ddaa3-6e45-4071-98b4-074680e2cdf5" />
+The backend uses a route-controller-service structure:
 
+- `routes`: maps API endpoints and applies authentication/authorization middleware
+- `controllers`: handles HTTP request/response behavior
+- `services`: contains database queries and business rules
+- `validators`: validates request payloads with `express-validator`
+- `middleware`: authentication, authorization, and error handling
 
-## 1. Installing Dependencies
+The frontend is organized by reusable pieces:
 
-### Backend
+- `pages`: role-specific screens for managers, members, auth, and profile
+- `components`: reusable layout, common UI, reports, tasks, projects, dashboard, and assistant components
+- `api`: typed-by-convention API wrappers around Axios
+- `context` and `hooks`: authentication state and access helpers
+
+## Role-Based Access Control
+
+The API enforces RBAC on protected routes:
+
+- Managers can view team-wide dashboards, reports, users, projects, and tasks.
+- Members can view only their assigned projects, own tasks, own reports, and own notifications.
+- Manager-only list endpoints such as `/api/projects` and `/api/tasks` require the `MANAGER` role.
+- Member task detail and status updates are scoped to `req.user.id`.
+- Weekly report creation/update validates that selected projects and task IDs belong to the current member.
+- The AI assistant builds context according to the authenticated user's role.
+
+See [`docs/API.md`](docs/API.md) for endpoint-level access rules.
+
+## Database
+
+The schema is available in [`database/schema.sql`](database/schema.sql). Main tables:
+
+- `users`
+- `projects`
+- `project_members`
+- `tasks`
+- `weekly_reports`
+- `weekly_report_tasks`
+- `notifications`
+
+The schema includes foreign keys, cascade rules, unique constraints, and indexes for role filtering, report weeks, task status/deadlines, project membership, and notifications.
+
+## Setup
+
+1. Install dependencies:
+
+```bash
 cd backend
 npm install
 
-### Frontend
-cd client
+cd ../client
 npm install
+```
 
-## 2. Running the Frontend
-#after installing dependencies
-cd client
-npm run dev
+2. Create the database:
 
-Frontend runs on: http://localhost:5173
+```bash
+mysql -u root -p < database/schema.sql
+```
 
-## 3. Running the Backend
+3. Configure environment files:
 
-Create a `.env` file inside the `backend` folder:
-env
+```bash
+cp backend/.env.example backend/.env
+cp client/.env.example client/.env
+```
 
-PORT=5000
+4. Start the backend:
 
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=your_mysql_password
-DB_NAME=weekly_report_system
-
-JWT_SECRET=your_super_secret_key
-JWT_EXPIRES_IN=1d
-
-GEMINI_API_KEY=your_gemini_api_key
-
-If your MySQL root user has no password:
-env
-DB_PASSWORD=
-
-Start the backend:
-#after installing dependencies
+```bash
 cd backend
 npm run dev
+```
 
-Backend runs on: http://localhost:5000
+5. Start the frontend:
 
-Expected test response:
+```bash
+cd client
+npm run dev
+```
 
-json
-{
-  "message": "Weekly Report API is running"
-}
+Default URLs:
 
-## 4. Running the Database
+- Frontend: `http://localhost:5173`
+- Backend API: `http://localhost:5000/api`
 
-Open MySQL Workbench or MySQL command line.
+## Important Environment Variables
 
-Create the database:
+Backend:
 
-CREATE DATABASE weekly_report_system;
-USE weekly_report_system;
+- `PORT`
+- `CLIENT_URL`
+- `DB_HOST`
+- `DB_USER`
+- `DB_PASSWORD`
+- `DB_NAME`
+- `JWT_SECRET`
+- `JWT_EXPIRES_IN`
+- `GEMINI_API_KEY`
+- `GEMINI_MODEL`
 
+Frontend:
 
-Create the tables in this order:
+- `VITE_API_BASE_URL`
 
-1. users
-2. projects
-3. project_members
-4. tasks
-5. weekly_reports
-6. weekly_report_tasks
-7. notifications
+## AI Chat Assistant
 
-Make sure your `.env` file database values match your local MySQL setup.
+Authenticated users see a floating AI assistant on dashboard pages. The browser sends questions to `/api/assistant/chat`; the Gemini API key stays in the backend. The backend builds a compact role-scoped context from reports, tasks, projects, blockers, workload, and dashboard data.
 
-When the backend starts successfully, you should see:
+Privacy and safety behavior:
 
-MySQL database connected successfully
-Server running on port 5000
+- Managers receive team-wide context.
+- Team members receive only their own relevant context.
+- The assistant refuses unrelated questions.
+- The model is instructed to use only provided system data and avoid inventing missing details.
 
-## Demo Accounts
+## Quality Checks
 
-Recommended demo accounts:
+Frontend:
 
-Manager
-Email: manager@example.com
-Password: Password123
+```bash
+cd client
+npm run lint
+npm run build
+```
 
-Team Member
-Email: johnsilva@example.com
-Password: Password@123
+Backend syntax check:
 
-## Main Features
-
-### Manager
-- Manager dashboard
-- User management
-- Project management
-- Task creation, update, and deletion
-- Weekly report review
-- Blocker monitoring
-- Dashboard analytics
-
-### Team Member
-- Member dashboard
-- View assigned projects
-- View assigned tasks
-- Update own task status
-- Create weekly reports
-- Submit reports
-- View report history
-
-## Role-Based Access
-
-### Manager
-Managers can access:
-- Manager dashboard
-- Projects
-- Tasks
-- Users
-- Team reports
-- Analytics
-
-### Team Member
-Team members can access:
-- Member dashboard
-- Own tasks
-- Own reports
-- Create and submit weekly reports
-
-JWT authentication and authorization middleware protect role-based routes.
-
-## AI Assistant
-
-The system optionally supports a Gemini AI assistant.
-
-Manager can ask:
-- What did the team work on this week?
-- Which members have blockers?
-- Summarize project progress.
-- Identify workload imbalance.
-
-Sensitive information such as passwords is never sent to the AI service.
-
-## Notes
-
-- Do not commit `.env` files.
-- Keep API keys private.
-- Make sure MySQL is running before starting the backend.
-- Use Thunder Client or Postman to test backend APIs.
+```bash
+cd backend
+node --check src/server.js
+```
 

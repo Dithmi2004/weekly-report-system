@@ -42,6 +42,75 @@ const addReportTask = async (
   );
 };
 
+const normalizeIdList = (ids = []) => {
+  const normalizedIds = ids.map((id) => Number(id));
+
+  if (normalizedIds.some((id) => !Number.isInteger(id) || id <= 0)) {
+    const error = new Error("Report task IDs must be valid positive integers");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return [...new Set(normalizedIds)];
+};
+
+const assertProjectAccessibleToUser = async (connection, userId, projectId) => {
+  const [projects] = await connection.query(
+    `SELECT p.id
+     FROM projects p
+     WHERE p.id = ?
+       AND (
+         EXISTS (
+           SELECT 1
+           FROM project_members pm
+           WHERE pm.project_id = p.id
+             AND pm.user_id = ?
+         )
+         OR EXISTS (
+           SELECT 1
+           FROM tasks t
+           WHERE t.project_id = p.id
+             AND t.assigned_to = ?
+         )
+       )`,
+    [projectId, userId, userId],
+  );
+
+  if (projects.length === 0) {
+    const error = new Error("You are not assigned to this project");
+    error.statusCode = 403;
+    throw error;
+  }
+};
+
+const assertReportTasksBelongToUserProject = async (
+  connection,
+  userId,
+  projectId,
+  completedTaskIds = [],
+  plannedTaskIds = [],
+) => {
+  const taskIds = normalizeIdList([...completedTaskIds, ...plannedTaskIds]);
+
+  if (taskIds.length === 0) return;
+
+  const placeholders = taskIds.map(() => "?").join(", ");
+  const [tasks] = await connection.query(
+    `SELECT id
+     FROM tasks
+     WHERE id IN (${placeholders})
+       AND assigned_to = ?
+       AND project_id = ?`,
+    [...taskIds, userId, projectId],
+  );
+
+  if (tasks.length !== taskIds.length) {
+    const error = new Error("Report tasks must belong to you and the selected project");
+    error.statusCode = 403;
+    throw error;
+  }
+};
+
 const backfillManualReportTasks = async (reportId) => {
   const connection = await db.getConnection();
 
@@ -128,6 +197,15 @@ const createWeeklyReport = async (userId, data) => {
 
   try {
     await connection.beginTransaction();
+
+    await assertProjectAccessibleToUser(connection, userId, projectId);
+    await assertReportTasksBelongToUserProject(
+      connection,
+      userId,
+      projectId,
+      completedTaskIds,
+      plannedTaskIds,
+    );
 
     const [result] = await connection.query(
       `INSERT INTO weekly_reports
@@ -311,6 +389,15 @@ const updateWeeklyReport = async (reportId, userId, data) => {
 
   try {
     await connection.beginTransaction();
+
+    await assertProjectAccessibleToUser(connection, userId, projectId);
+    await assertReportTasksBelongToUserProject(
+      connection,
+      userId,
+      projectId,
+      completedTaskIds,
+      plannedTaskIds,
+    );
 
     await connection.query(
       `UPDATE weekly_reports
