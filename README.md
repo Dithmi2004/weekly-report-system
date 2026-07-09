@@ -121,7 +121,7 @@ Email: manager@example.com
 Password: Password123
 
 Team Member
-Email: johnsilva@gm,ail.com
+Email: johnsilva@example.com
 Password: Password@123
 
 ## Main Features
