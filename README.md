@@ -37,6 +37,8 @@ weekly-report-system/
 │   ├── src/
 │   └── package.json
 └── README.md
+<img width="355" height="783" alt="image" src="https://github.com/user-attachments/assets/b86ddaa3-6e45-4071-98b4-074680e2cdf5" />
+
 
 ## 1. Installing Dependencies
 
