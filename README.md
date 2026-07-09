@@ -1,4 +1,4 @@
-<img width="380" height="840" alt="image" src="https://github.com/user-attachments/assets/2aa59054-f3c9-477f-8b60-087ddfe172a0" /># Weekly Report Management System
+# Weekly Report Management System
 
 Full-stack weekly report generator and team dashboard with role-based access, structured weekly report submission, project/task management, manager analytics, and optional AI assistant support.
 
